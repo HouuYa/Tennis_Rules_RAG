@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테니스 규칙 챗봇 (RAG)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+        .header h1 { font-size: 24px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .config-section {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .config-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        .config-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .config-section small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+        }
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user { flex-direction: row-reverse; }
+        .message .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .message.user .avatar { background: #667eea; }
+        .message.bot .avatar { background: #764ba2; }
+        .message .bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .message.user .bubble {
+            background: #667eea;
+            color: white;
+        }
+        .message.bot .bubble {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .sources {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #666;
+        }
+        .sources-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .source-item {
+            padding: 5px 0;
+        }
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            border-radius: 0 0 20px 20px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 15px;
+            transition: border 0.3s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .input-group button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .input-group button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        .input-group button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .loading:nth-child(1) { animation-delay: -0.32s; }
+        .loading:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎾 테니스 규칙 챗봇</h1>
+            <p>ITF 및 KTA 규칙집 기반 RAG 시스템</p>
+        </div>
+
+        <div class="config-section">
+            <input type="text" id="geminiApiKey" placeholder="Gemini API Key를 입력하세요 (AI21 Coach와 동일한 키 사용)">
+            <small>💡 API 키는 브라우저에만 저장되며 서버로 전송되지 않습니다</small>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="message bot">
+                <div class="avatar">🤖</div>
+                <div class="bubble">
+                    안녕하세요! 저는 테니스 규칙 전문가입니다.<br>
+                    ITF와 KTA 규칙집을 기반으로 질문에 답변해드립니다.<br><br>
+                    예시 질문:<br>
+                    • "서브 폴트는 어떤 경우인가요?"<br>
+                    • "타이브레이크 규칙을 알려주세요"<br>
+                    • "풋 폴트는 무엇인가요?"
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-group">
+                <input type="text" id="questionInput" placeholder="테니스 규칙에 대해 질문하세요..."
+                       onkeypress="if(event.key==='Enter') sendQuestion()">
+                <button onclick="sendQuestion()" id="sendBtn">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Edge Function URL (실제 URL로 교체)
+        const EDGE_FUNCTION_URL = 'https://liwdnhwfgksduuqrhxwe.supabase.co/functions/v1/tennis-rag-query';
+
+        // 로컬 스토리지에서 API 키 로드
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('geminiApiKey').value = savedKey;
+            }
+        });
+
+        // API 키 저장
+        document.getElementById('geminiApiKey').addEventListener('change', (e) => {
+            localStorage.setItem('gemini_api_key', e.target.value);
+        });
+
+        function addMessage(text, isUser, sources = null) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+
+            let sourcesHtml = '';
+            if (sources && sources.length > 0) {
+                sourcesHtml = `
+                    <div class="sources">
+                        <div class="sources-title">📚 참고 규칙:</div>
+                        ${sources.map((s, i) => `
+                            <div class="source-item">
+                                ${i+1}. ${s.rule_id} (유사도: ${(s.similarity * 100).toFixed(1)}%)
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            messageDiv.innerHTML = `
+                <div class="avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="bubble">
+                    ${text.replace(/\n/g, '<br>')}
+                    ${sourcesHtml}
+                </div>
+            `;
+
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function showLoading() {
+            const chatArea = document.getElementById('chatArea');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.innerHTML = `
+                <div class="avatar">🤖</div>
+                <div class="bubble">
+                    <div class="loading"></div>
+                    <div class="loading" style="margin: 0 5px;"></div>
+                    <div class="loading"></div>
+                </div>
+            `;
+            chatArea.appendChild(loadingDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function hideLoading() {
+            const loading = document.getElementById('loadingMessage');
+            if (loading) loading.remove();
+        }
+
+        async function sendQuestion() {
+            const questionInput = document.getElementById('questionInput');
+            const geminiApiKey = document.getElementById('geminiApiKey').value.trim();
+            const question = questionInput.value.trim();
+
+            if (!geminiApiKey) {
+                alert('Gemini API Key를 먼저 입력해주세요!');
+                return;
+            }
+
+            if (!question) {
+                alert('질문을 입력해주세요!');
+                return;
+            }
+
+            // UI 업데이트
+            addMessage(question, true);
+            questionInput.value = '';
+            document.getElementById('sendBtn').disabled = true;
+            showLoading();
+
+            try {
+                const response = await fetch(EDGE_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        gemini_api_key: geminiApiKey,
+                        match_count: 5,
+                        match_threshold: 0.3
+                    })
+                });
+
+                hideLoading();
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '서버 오류가 발생했습니다.');
+                }
+
+                const data = await response.json();
+                addMessage(data.answer, false, data.sources);
+
+            } catch (error) {
+                hideLoading();
+                addMessage(`❌ 오류: ${error.message}`, false);
+                console.error('Error:', error);
+            } finally {
+                document.getElementById('sendBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
