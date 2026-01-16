@@ -177,8 +177,9 @@
         </div>
 
         <div class="config-section">
-            <input type="text" id="geminiApiKey" placeholder="Gemini API Key를 입력하세요 (AI21 Coach와 동일한 키 사용)">
-            <small>💡 API 키는 브라우저에만 저장되며 서버로 전송되지 않습니다</small>
+            <input type="text" id="geminiApiKey" placeholder="Gemini API Key를 입력하세요 (AI Coach와 동일한 키 사용)">
+            <small>💡 API 키는 브라우저에만 저장되며, 서버에 영구적으로 기록되지 않습니다</small>
+            <small>⚠️ LocalStorage는 XSS 공격에 취약할 수 있으므로, 신뢰할 수 있는 환경에서만 사용하세요</small>
         </div>
 
         <div class="chat-area" id="chatArea">
@@ -205,8 +206,9 @@
     </div>
 
     <script>
-        // Supabase Edge Function URL (실제 URL로 교체)
-        const EDGE_FUNCTION_URL = 'https://liwdnhwfgksduuqrhxwe.supabase.co/functions/v1/tennis-rag-query';
+        // 👉 중요: 아래 URL을 실제 배포된 Edge Function URL로 교체하세요!
+        // 예: 'https://your-project-ref.supabase.co/functions/v1/tennis-rag-query'
+        const EDGE_FUNCTION_URL = 'https://your-project-ref.supabase.co/functions/v1/tennis-rag-query';
 
         // 로컬 스토리지에서 API 키 로드
         document.addEventListener('DOMContentLoaded', () => {
@@ -221,33 +223,62 @@
             localStorage.setItem('gemini_api_key', e.target.value);
         });
 
+        // 텍스트를 안전하게 HTML 엔티티로 변환 (XSS 방지)
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function addMessage(text, isUser, sources = null) {
             const chatArea = document.getElementById('chatArea');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
 
-            let sourcesHtml = '';
+            // 아바타 생성
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = isUser ? '👤' : '🤖';
+
+            // 메시지 버블 생성
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            // 텍스트 안전하게 추가 (XSS 방지)
+            const textLines = text.split('\n');
+            textLines.forEach((line, index) => {
+                const textNode = document.createTextNode(line);
+                bubble.appendChild(textNode);
+                if (index < textLines.length - 1) {
+                    bubble.appendChild(document.createElement('br'));
+                }
+            });
+
+            // 출처 정보 추가
             if (sources && sources.length > 0) {
-                sourcesHtml = `
-                    <div class="sources">
-                        <div class="sources-title">📚 참고 규칙:</div>
-                        ${sources.map((s, i) => `
-                            <div class="source-item">
-                                ${i+1}. ${s.rule_id} (유사도: ${(s.similarity * 100).toFixed(1)}%)
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'sources';
+
+                const sourcesTitle = document.createElement('div');
+                sourcesTitle.className = 'sources-title';
+                sourcesTitle.textContent = '📚 참고 규칙:';
+                sourcesDiv.appendChild(sourcesTitle);
+
+                sources.forEach((s, i) => {
+                    const sourceItem = document.createElement('div');
+                    sourceItem.className = 'source-item';
+                    sourceItem.textContent = `${i+1}. ${s.rule_id} (유사도: ${(s.similarity * 100).toFixed(1)}%)`;
+                    sourcesDiv.appendChild(sourceItem);
+                });
+
+                bubble.appendChild(sourcesDiv);
             }
 
-            messageDiv.innerHTML = `
-                <div class="avatar">${isUser ? '👤' : '🤖'}</div>
-                <div class="bubble">
-                    ${text.replace(/\n/g, '<br>')}
-                    ${sourcesHtml}
-                </div>
-            `;
-
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(bubble);
             chatArea.appendChild(messageDiv);
             chatArea.scrollTop = chatArea.scrollHeight;
         }
