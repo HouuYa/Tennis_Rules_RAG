@@ -154,7 +154,7 @@ Successfully installed supabase-1.0.0 google-generativeai-0.3.0 ...
 SUPABASE_URL="https://xxxxxx.supabase.co"
 
 # 위에서 복사한 service_role secret key
-SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ey..."
+SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInoooooooooo.ey..."
 
 # 위에서 발급받은 Gemini API Key
 GEMINI_API_KEY="AIzaSyC..."
