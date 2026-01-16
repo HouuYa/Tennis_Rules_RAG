@@ -3,12 +3,14 @@
 // ====================================
 // 사용자 질문 → Gemini 임베딩 → 벡터 검색 → 답변 생성
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
 // CORS 헤더
+// 프로덕션: ALLOWED_ORIGIN 환경 변수로 특정 도메인 제한 권장
+// 로컬 개발: "*" fallback 사용
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-gemini-api-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
@@ -88,10 +90,18 @@ serve(async (req) => {
     console.log(`[RAG] 임베딩 생성 완료: ${queryEmbedding.length}차원`);
 
     // 3. Supabase에서 유사 문서 검색
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("[RAG] Supabase 환경 변수가 설정되지 않았습니다.");
+      return new Response(
+        JSON.stringify({ error: "서버 설정 오류: Supabase 환경 변수 누락" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: searchResults, error: searchError } = await supabaseClient.rpc(
       "match_tennis_rules",
