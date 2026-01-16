@@ -1,0 +1,7 @@
+supabase
+google-generativeai
+pdfplumber
+python-dotenv
+requests
+tqdm
+numpy
