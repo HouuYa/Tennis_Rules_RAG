@@ -29,6 +29,8 @@ class TennisSupabaseETL:
         self.skip_embedding = os.getenv("SKIP_EMBEDDING", "0") == "1"
         # 테스트용: SKIP_REMOTE=1 로 설정하면 원격(http) 파일 다운로드를 건너뜁니다.
         self.skip_remote = os.getenv("SKIP_REMOTE", "0") == "1"
+        # 테스트용: USE_LOCAL_EMBEDDING=1 로 설정하면 Gemini 대신 로컬에서 결정론적 임베딩을 생성합니다.
+        self.use_local_embedding = os.getenv("USE_LOCAL_EMBEDDING", "0") == "1"
 
         # embedding 호출을 건너뛰는 테스트 모드이면 외부 키/클라이언트 초기화를 생략
         if not self.skip_embedding:
@@ -170,12 +172,13 @@ class TennisSupabaseETL:
         return chunks
 
     def generate_embeddings_and_upload(self, chunks: List[Dict[str, Any]]):
-        # GEMINI API 키 기본값/플레이스홀더 체크
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        if not gemini_key or 'your-google-gemini-api-key' in gemini_key.lower():
-            logger.error("❌ GEMINI_API_KEY가 비어있거나 플레이스홀더로 보입니다. 임베딩을 진행할 수 없습니다.")
-            self.gemini_issue = True
-            return
+        # GEMINI API 키 체크(로컬 임베딩 모드면 건너뜀)
+        if not self.use_local_embedding:
+            gemini_key = os.getenv("GEMINI_API_KEY")
+            if not gemini_key or 'your-google-gemini-api-key' in gemini_key.lower():
+                logger.error("❌ GEMINI_API_KEY가 비어있거나 플레이스홀더로 보입니다. 임베딩을 진행할 수 없습니다.")
+                self.gemini_issue = True
+                return
         batch_size = 10
         total_chunks = len(chunks)
 
@@ -191,29 +194,34 @@ class TennisSupabaseETL:
                         logger.info(f"[SKIP_EMBEDDING] 임베딩 생성 스킵: {item.get('rule_id')}")
                         continue
 
-                    # 1. Gemini API 호출
-                    result = self._genai.embed_content(
-                        model=self.embedding_model,
-                        content=item["content"],
-                        task_type="retrieval_document",
-                        output_dimensionality=self.embedding_dim,
-                    )
+                    # Local embedding 모드: 외부 호출 없이 결정론적 벡터 생성
+                    if self.use_local_embedding:
+                        logger.info(f"[LOCAL_EMBEDDING] 로컬 임베딩 생성: {item.get('rule_id')}")
+                        embedding_vector = self._local_embed(item["content"])
+                    else:
+                        # 1. Gemini API 호출
+                        result = self._genai.embed_content(
+                            model=self.embedding_model,
+                            content=item["content"],
+                            task_type="retrieval_document",
+                            output_dimensionality=self.embedding_dim,
+                        )
 
-                    # 2. 임베딩 벡터 추출 (여러 반환 형식에 대응)
-                    embedding_vector = None
-                    if isinstance(result, dict):
-                        if 'embedding' in result:
-                            embedding_vector = result['embedding']
-                        elif 'embeddings' in result and isinstance(result['embeddings'], list):
-                            embedding_vector = result['embeddings'][0]
-                        elif 'data' in result and isinstance(result['data'], list) and result['data']:
-                            if 'embedding' in result['data'][0]:
-                                embedding_vector = result['data'][0]['embedding']
-                    elif hasattr(result, 'embedding'):
-                        embedding_vector = getattr(result, 'embedding')
-                    elif hasattr(result, 'embeddings'):
-                        embeddings_attr = getattr(result, 'embeddings')
-                        embedding_vector = embeddings_attr[0] if embeddings_attr else None
+                        # 2. 임베딩 벡터 추출 (여러 반환 형식에 대응)
+                        embedding_vector = None
+                        if isinstance(result, dict):
+                            if 'embedding' in result:
+                                embedding_vector = result['embedding']
+                            elif 'embeddings' in result and isinstance(result['embeddings'], list):
+                                embedding_vector = result['embeddings'][0]
+                            elif 'data' in result and isinstance(result['data'], list) and result['data']:
+                                if 'embedding' in result['data'][0]:
+                                    embedding_vector = result['data'][0]['embedding']
+                        elif hasattr(result, 'embedding'):
+                            embedding_vector = getattr(result, 'embedding')
+                        elif hasattr(result, 'embeddings'):
+                            embeddings_attr = getattr(result, 'embeddings')
+                            embedding_vector = embeddings_attr[0] if embeddings_attr else None
 
                     if embedding_vector is None:
                         raise ValueError("임베딩을 추출할 수 없습니다. 응답 포맷을 확인하세요.")
@@ -312,6 +320,25 @@ class TennisSupabaseETL:
                 logger.exception(f"❌ 파일 처리 중 치명적 오류 발생 ({target.get('name', 'unknown')}): {e}")
 
         logger.info("🎉 모든 작업이 완료되었습니다.")
+
+    def _local_embed(self, text: str) -> List[float]:
+        """결정론적 로컬 임베딩 생성 (테스트용)
+        - SHA256 해시를 시드로 사용하여 동일 입력에 대해 항상 동일한 벡터 생성
+        - 768차원 및 L2 정규화
+        """
+        import hashlib
+
+        h = hashlib.sha256(text.encode('utf-8')).digest()
+        seed = int.from_bytes(h[:8], 'big') % (2**32)
+        rng = np.random.RandomState(seed)
+        vec = rng.normal(size=self.embedding_dim).astype(float)
+
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = (vec / norm).astype(float).tolist()
+        else:
+            vec = vec.astype(float).tolist()
+        return vec
 
 # --- 실행부 ---
 if __name__ == "__main__":
