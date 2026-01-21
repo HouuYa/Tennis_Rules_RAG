@@ -17,7 +17,6 @@ const corsHeaders = {
 
 interface RequestBody {
   question: string;
-  gemini_api_key: string;
   match_count?: number;
   match_threshold?: number;
 }
@@ -39,12 +38,22 @@ serve(async (req) => {
 
   try {
     // 1. 요청 파라미터 추출
-    const { question, gemini_api_key, match_count = 5, match_threshold = 0.3 }: RequestBody = await req.json();
+    const { question, match_count = 5, match_threshold = 0.3 }: RequestBody = await req.json();
 
-    if (!question || !gemini_api_key) {
+    // 서버에서 관리되는 Gemini API 키 사용
+    const gemini_api_key = Deno.env.get("GEMINI_API_KEY");
+    if (!question) {
       return new Response(
-        JSON.stringify({ error: "question과 gemini_api_key가 필요합니다." }),
+        JSON.stringify({ error: "question이 필요합니다." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!gemini_api_key) {
+      console.error("[RAG] GEMINI_API_KEY가 서버 환경에 설정되어 있지 않습니다.");
+      return new Response(
+        JSON.stringify({ error: "서버 설정 오류: Gemini API 키가 없습니다." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
