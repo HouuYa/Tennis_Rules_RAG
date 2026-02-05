@@ -21,10 +21,12 @@ PDF 문서 → ETL 스크립트 → Supabase (pgvector)
 ```
 
 ### 주요 기능
+- ✅ **답변 생성**: Gemini 1.5 Flash (gemini-flash-latest)로 컨텍스트 기반 답변
+- ✅ **API 키 관리**: 클라이언트 우선순위 (RequestBody > Env)
 - ✅ 테니스 규칙 PDF 자동 처리 (한글/영문)
-- ✅ 조항별 chunking 및 임베딩 저장
-- ✅ Gemini Embeddings API 사용 (768차원)
-- ✅ 벡터 유사도 검색 (pgvector)
+- ✅ **조항별 Chunking**: 정규식 기반 + TOC 제외 로직 적용 (전체 155개 조항)
+  - 한글: "**1. 제목**", "**I. 제목**", "**A. 제목**"
+  - 영문: "**Rule 1**", "**Article 1**", "**Appendix I**"
 - ✅ 사용자 API 키 재사용 (AI Coach와 동일)
 - ✅ 실시간 채팅 UI
 
@@ -122,14 +124,12 @@ GEMINI_API_KEY="AIzaSyC..."
 
 ⚠️ **주의**: `.env` 파일은 절대 Git에 커밋하지 마세요!
 
-### 2. ETL 스크립트 실행
-
-```bash
-# 가상환경 활성화
-source venv/bin/activate
-
-# 전체 실행 (로컬 + 원격 PDF)
+# 전체 실행 (자동화된 경우)
 python etl_tennis_supabase.py
+
+# 또는 더 세밀한 제어 (추천):
+python gen_sql_from_txt.py  # 텍스트에서 SQL 생성 (임베딩 포함)
+python upload_rules.py      # Supabase로 데이터 업로드
 ```
 
 ### 3. 선택적 옵션
@@ -365,8 +365,8 @@ batch_size = 20  # 10 → 20으로 증가
 
 ---
 
-## 📚 참고 문서
-
+## 📅 점검 일자
+2026-02-05
 - [Supabase pgvector](https://supabase.com/docs/guides/ai/vector-columns)
 - [Gemini API](https://ai.google.dev/docs)
 - [Supabase Edge Functions](https://supabase.com/docs/guides/functions)

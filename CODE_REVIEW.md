@@ -1,7 +1,7 @@
 # 🔍 Tennis Rules RAG - 코드 점검 결과
 
 ## 📅 점검 일자
-2026-01-16
+2026-02-05
 
 ## ✅ 점검 완료 항목
 
@@ -9,9 +9,9 @@
 
 #### 강점:
 - ✅ **PDF 처리**: pdfplumber로 한글/영문 PDF 텍스트 추출 지원
-- ✅ **조항별 Chunking**: 정규식 기반으로 규칙 조항 단위 분할
-  - 한글: "규칙 1", "제 1 조", "부록 I"
-  - 영문: "Rule 1", "Article 1", "Appendix I"
+- ✅ **조항별 Chunking**: 정규식 기반 + 목차(TOC) 자동 제외 로직 (전체 155개 조항)
+  - 한글: "**1. 제목**", "**I. 제목**", "**A. 제목**"
+  - 영문: "**Rule 1**", "**Article 1**", "**Appendix I**"
 - ✅ **Gemini Embeddings**: 768차원 벡터 생성 및 정규화
 - ✅ **배치 처리**: 10개씩 배치로 효율적 처리 (Rate limiting 포함)
 - ✅ **에러 핸들링**: Try-except 블록으로 안전성 확보
@@ -47,8 +47,8 @@
 - ✅ **CORS 지원**: Preflight 요청 처리
 - ✅ **질문 임베딩**: 사용자 API 키로 Gemini Embeddings 호출
 - ✅ **벡터 검색**: match_tennis_rules 함수 호출
-- ✅ **답변 생성**: Gemini 1.5 Flash로 컨텍스트 기반 답변
-- ✅ **에러 처리**: 각 단계별 에러 핸들링
+- ✅ **답변 생성**: Gemini 1.5 Flash (gemini-flash-latest)로 컨텍스트 기반 답변
+- ✅ **API 키 관리**: 클라이언트 우선순위 로직 (RequestBody > Env)
 - ✅ **응답 형식**: JSON (question, answer, sources, metadata)
 
 #### 보안:

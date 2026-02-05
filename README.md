@@ -10,10 +10,10 @@ ITF 및 KTA 테니스 규칙집 기반 질의응답 시스템 (RAG - Retrieval A
 
 ## ✨ 주요 기능
 
-- 📚 **다국어 규칙 지원**: ITF(영문), KTA(한글) 규칙집 통합
-- 🧩 **조항별 Chunking**: 규칙 조항 단위로 지능적 분할
+- 📚 **다국어 규칙 지원**: ITF(영문), KTA(한글) 규칙집 통합 (전체 155개 조항)
+- 🧩 **조항별 Chunking**: 규칙 번호/제목 단위로 지능적 분할 및 TOC 자동 제외
 - 🔍 **벡터 유사도 검색**: pgvector + Gemini Embeddings (768차원)
-- 🤖 **AI 답변 생성**: Gemini 1.5 Flash 기반 정확한 답변
+- 🤖 **AI 답변 생성**: Gemini 1.5 Flash (gemini-flash-latest) 기반 정확한 답변
 - 🔐 **사용자 API 키**: AI Coach와 동일한 Gemini API 키 재사용
 - 💬 **실시간 채팅 UI**: 직관적인 웹 인터페이스
 
@@ -242,12 +242,16 @@ python test_connection.py
 
 ### 단계 6️⃣: ETL 실행 (데이터 적재)
 
-이 단계에서 PDF에서 텍스트를 추출하고 임베딩을 생성합니다.
-⏱️ **소요 시간**: 약 10-20분 (인터넷 속도에 따라 다름)
+이 단계에서 PDF에서 텍스트를 추출하고 임베딩을 생성합니다. 
+최신 버전은 `gen_sql_from_txt.py`와 `upload_rules.py`를 순서대로 실행하거나, `etl_tennis_supabase.py`를 실행합니다.
+⏱️ **소요 시간**: 약 10-15분 (155개 조항 처리)
 
 ```bash
-# 전체 ETL 프로세스 실행
-python etl_tennis_supabase.py
+# 1. 텍스트에서 SQL 생성 (임베딩 포함)
+python gen_sql_from_txt.py
+
+# 2. Supabase로 업로드
+python upload_rules.py
 ```
 
 **실행 과정:**
@@ -440,7 +444,10 @@ Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
 
 ```
 Tennis_Rules_RAG/
-├── etl_tennis_supabase.py      # ETL 메인 스크립트
+├── gen_sql_from_txt.py          # 텍스트 기반 SQL 생성 (Refined Chunking)
+├── upload_rules.py              # Supabase 데이터 업로드 유틸리티
+├── etl_tennis_supabase.py      # ETL 통합 스크립트
+├── test_rag_backend.py          # 백엔드 테스트 스크립트 (출력 개선됨)
 ├── test_connection.py           # 연결 테스트 스크립트
 ├── requirements.txt             # Python 패키지
 ├── .env                         # 환경 변수 (git 제외)
@@ -452,7 +459,7 @@ Tennis_Rules_RAG/
     ├── config.toml              # Supabase 로컬 설정
     └── functions/
         └── tennis-rag-query/
-            └── index.ts         # Edge Function 코드
+            └── index.ts         # Edge Function 코드 (gemini-flash-latest 사용)
 ```
 
 ## 🔧 고급 사용 방법
