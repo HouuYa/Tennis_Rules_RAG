@@ -19,6 +19,7 @@ interface RequestBody {
   question: string;
   match_count?: number;
   match_threshold?: number;
+  gemini_api_key?: string;
 }
 
 interface SearchResult {
@@ -38,10 +39,11 @@ serve(async (req) => {
 
   try {
     // 1. 요청 파라미터 추출
-    const { question, match_count = 5, match_threshold = 0.3 }: RequestBody = await req.json();
+    const { question, match_count = 5, match_threshold = 0.3, gemini_api_key: client_api_key }: RequestBody = await req.json();
 
-    // 서버에서 관리되는 Gemini API 키 사용
-    const gemini_api_key = Deno.env.get("GEMINI_API_KEY");
+    // API 키 결정: 클라이언트 제공 값 우선 -> 서버 환경 변수 fallback
+    const gemini_api_key = client_api_key || Deno.env.get("GEMINI_API_KEY");
+
     if (!question) {
       return new Response(
         JSON.stringify({ error: "question이 필요합니다." }),
@@ -50,10 +52,10 @@ serve(async (req) => {
     }
 
     if (!gemini_api_key) {
-      console.error("[RAG] GEMINI_API_KEY가 서버 환경에 설정되어 있지 않습니다.");
+      console.error("[RAG] GEMINI_API_KEY가 제공되지 않았습니다.");
       return new Response(
-        JSON.stringify({ error: "서버 설정 오류: Gemini API 키가 없습니다." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Gemini API 키가 필요합니다 (클라이언트 제공 또는 서버 설정)." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -138,7 +140,7 @@ serve(async (req) => {
 
     // 5. Gemini로 답변 생성 (Optional - 프론트엔드에서도 가능)
     const generateResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini_api_key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${gemini_api_key}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
