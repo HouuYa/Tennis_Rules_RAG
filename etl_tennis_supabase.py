@@ -70,9 +70,18 @@ class TennisSupabaseETL:
         self.embedding_model = "models/gemini-embedding-001"
         self.embedding_dim = 768  # Supabase 테이블 vector(768)에 맞춤
 
-        # 2. 조항 분할을 위한 정규식 (공백 유연 대응)
-        # 영어: Rule 1, Article 1, Appendix I / 한글: 규칙 1, 제 1 조, 부록 I
-        self.split_pattern = re.compile(r"(규\s*칙\s*\d+|Rule\s*\d+|Article\s*\d+|제\s*\d+\s*조|부\s*록\s*[IVX]+|APPENDIX\s*[IVX]+|Section\s*[A-Z])", flags=re.IGNORECASE)
+        # 2. 조항 분할을 위한 정규식 (공백 및 영문 스타일 대응)
+        # 패턴 1: **1. 제목** (한글 규정집)
+        # 패턴 2: 1. THE COURT 또는 APPENDIX I (영문 규정집)
+        # 패턴 3: **FOREWORD** 등 특수 섹션
+        self.split_pattern = re.compile(
+            r"((?:\n\s*)?(?:"
+            r"\*\*(?!(?:페이지|목차|표지|머리말))(?:\d+\.|[I-V]+\.|[A-Z]\.)\s*.*?\*\*|"  # **1. 코트**
+            r"(?:\d+\.|APPENDIX\s+[IVX]+|RULE\s+\d+)\s+[A-Z\s]{3,}|"                # 1. THE COURT
+            r"\*\*[A-Z\s]{3,}\*\*"                                                  # **FOREWORD**
+            r"))", 
+            flags=re.IGNORECASE
+        )
 
     def download_file(self, url: str, save_dir: str = "./downloads") -> str:
         """URL에서 파일을 다운로드하거나 로컬 경로 반환"""

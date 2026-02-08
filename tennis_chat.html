@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>테니스 규칙 챗봇 (RAG)</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -15,29 +21,41 @@
             align-items: center;
             padding: 20px;
         }
+
         .container {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 800px;
             width: 100%;
             height: 90vh;
             display: flex;
             flex-direction: column;
         }
+
         .header {
             padding: 25px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 20px 20px 0 0;
         }
-        .header h1 { font-size: 24px; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 14px; }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
         .config-section {
             padding: 20px;
             background: #f8f9fa;
             border-bottom: 1px solid #e0e0e0;
         }
+
         .config-section input {
             width: 100%;
             padding: 12px;
@@ -46,32 +64,48 @@
             font-size: 14px;
             transition: border 0.3s;
         }
+
         .config-section input:focus {
             outline: none;
             border-color: #667eea;
         }
+
         .config-section small {
             display: block;
             margin-top: 5px;
             color: #666;
         }
+
         .chat-area {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
             background: #fafafa;
         }
+
         .message {
             margin-bottom: 15px;
             display: flex;
             gap: 10px;
             animation: slideIn 0.3s ease;
         }
+
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .message.user { flex-direction: row-reverse; }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
         .message .avatar {
             width: 40px;
             height: 40px;
@@ -82,8 +116,15 @@
             font-size: 20px;
             flex-shrink: 0;
         }
-        .message.user .avatar { background: #667eea; }
-        .message.bot .avatar { background: #764ba2; }
+
+        .message.user .avatar {
+            background: #667eea;
+        }
+
+        .message.bot .avatar {
+            background: #764ba2;
+        }
+
         .message .bubble {
             max-width: 70%;
             padding: 12px 18px;
@@ -91,15 +132,18 @@
             line-height: 1.5;
             word-wrap: break-word;
         }
+
         .message.user .bubble {
             background: #667eea;
             color: white;
         }
+
         .message.bot .bubble {
             background: white;
             color: #333;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
+
         .sources {
             margin-top: 10px;
             padding-top: 10px;
@@ -107,23 +151,28 @@
             font-size: 12px;
             color: #666;
         }
+
         .sources-title {
             font-weight: bold;
             margin-bottom: 5px;
         }
+
         .source-item {
             padding: 5px 0;
         }
+
         .input-area {
             padding: 20px;
             background: white;
             border-top: 1px solid #e0e0e0;
             border-radius: 0 0 20px 20px;
         }
+
         .input-group {
             display: flex;
             gap: 10px;
         }
+
         .input-group input {
             flex: 1;
             padding: 15px;
@@ -132,10 +181,12 @@
             font-size: 15px;
             transition: border 0.3s;
         }
+
         .input-group input:focus {
             outline: none;
             border-color: #667eea;
         }
+
         .input-group button {
             padding: 15px 30px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -146,13 +197,16 @@
             cursor: pointer;
             transition: transform 0.2s;
         }
+
         .input-group button:hover:not(:disabled) {
             transform: scale(1.05);
         }
+
         .input-group button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
+
         .loading {
             display: inline-block;
             width: 8px;
@@ -161,19 +215,41 @@
             background: #667eea;
             animation: bounce 1.4s infinite ease-in-out both;
         }
-        .loading:nth-child(1) { animation-delay: -0.32s; }
-        .loading:nth-child(2) { animation-delay: -0.16s; }
+
+        .loading:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
         @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎾 테니스 규칙 챗봇</h1>
-            <p>ITF 및 KTA 규칙집 기반 RAG 시스템</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🎾 테니스 규칙 챗봇</h1>
+                    <p>ITF 및 KTA 규칙집 기반 RAG 시스템</p>
+                </div>
+                <a href="admin.html" style="color: white; font-size: 24px; text-decoration: none;"
+                    title="Admin Dashboard">⚙️</a>
+            </div>
         </div>
 
         <div class="config-section">
@@ -199,7 +275,7 @@
         <div class="input-area">
             <div class="input-group">
                 <input type="text" id="questionInput" placeholder="테니스 규칙에 대해 질문하세요..."
-                       onkeypress="if(event.key==='Enter') sendQuestion()">
+                    onkeypress="if(event.key==='Enter') sendQuestion()">
                 <button onclick="sendQuestion()" id="sendBtn">전송</button>
             </div>
         </div>
@@ -270,7 +346,25 @@
                 sources.forEach((s, i) => {
                     const sourceItem = document.createElement('div');
                     sourceItem.className = 'source-item';
-                    sourceItem.textContent = `${i+1}. ${s.rule_id} (유사도: ${(s.similarity * 100).toFixed(1)}%)`;
+
+                    // 제목과 유사도
+                    const titleDiv = document.createElement('div');
+                    titleDiv.style.fontWeight = 'bold';
+                    titleDiv.textContent = `${i + 1}. ${s.rule_id} (${(s.similarity * 100).toFixed(1)}%)`;
+                    sourceItem.appendChild(titleDiv);
+
+                    // 원문 텍스트 (source_text)
+                    const contentDiv = document.createElement('div');
+                    contentDiv.style.background = '#f0f0f0';
+                    contentDiv.style.padding = '8px';
+                    contentDiv.style.borderRadius = '5px';
+                    contentDiv.style.marginTop = '4px';
+                    contentDiv.style.fontSize = '11px';
+                    contentDiv.style.maxHeight = '80px';
+                    contentDiv.style.overflowY = 'auto';
+                    contentDiv.textContent = s.content;
+                    sourceItem.appendChild(contentDiv);
+
                     sourcesDiv.appendChild(sourceItem);
                 });
 
@@ -360,4 +454,5 @@
         }
     </script>
 </body>
+
 </html>

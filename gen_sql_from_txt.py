@@ -22,8 +22,8 @@ class SQLGenFromText:
 
     def split_into_chunks(self, text, source_name):
         # 1. 목차(TOC)를 건너뛰고 실제 본문이 시작되는 지점 찾기
-        # 보통 "1. 코트" 또는 "ITF 테니스 룰"로 시작함
-        start_marker = re.search(r"(\*\*1\.\s*코트|\*\*ITF\s*테니스\s*룰\*\*)", text)
+        # 한글: "1. 코트", "ITF 테니스 룰" | 영문: "1. THE COURT", "RULES OF TENNIS"
+        start_marker = re.search(r"(\*\*1\.\s*코트|\*\*ITF\s*테니스\s*룰\*\*|1\.\s*THE\s*COURT|RULES\s*OF\s*TENNIS)", text, re.IGNORECASE)
         
         intro_text = ""
         body_text = text
@@ -36,11 +36,15 @@ class SQLGenFromText:
             print("Warning: Could not find main body start marker. Using full text.")
 
         # 2. 본문에서 실제 규칙/섹션 헤더 찾기
-        # 패턴 1: **1. 제목** (주요 규칙)
-        # 패턴 2: **I. 제목** 또는 **A. 제목** (심판 규정 등)
-        # 페이지 번호(**[페이지 10]**)나 목차(**목차**)는 제외
+        # 패턴 1: **1. 제목** (한글 규정집 스타일)
+        # 패턴 2: 1. THE COURT 또는 APPENDIX I (영문 규정집 스타일)
+        # 패턴 3: **FOREWORD** 등 특수 섹션
         body_split_pattern = re.compile(
-            r"(\n\s*\*\*(?!(?:페이지|목차|표지|머리말|蹂|媛쒖젙|珥앷큵|踰덉뿭|덈뒗|蹂덉뿭|쨌))(?:\d+\.|[I-V]+\.|[A-Z]\.)\s*.*?\*\*(\n|$))", 
+            r"(\n\s*(?:"
+            r"\*\*(?!(?:페이지|목차|표지|머리말))(?:\d+\.|[I-V]+\.|[A-Z]\.)\s*.*?\*\*|"  # **1. 코트**
+            r"(?:\d+\.|APPENDIX\s+[IVX]+|RULE\s+\d+)\s+[A-Z\s]{3,}|"                # 1. THE COURT
+            r"\*\*[A-Z\s]{3,}\*\*"                                                  # **FOREWORD**
+            r")(\n|$))", 
             flags=re.IGNORECASE
         )
         
@@ -130,7 +134,15 @@ class SQLGenFromText:
                     # Postgres vector format is '[1,2,3]'
                     embedding_str = str(embedding_list)
                     
-                    sql = f"INSERT INTO tennis_rules (source_file, rule_id, content, embedding) VALUES ('{source_esc}', '{rule_id_esc}', '{content_esc}', '{embedding_str}'::vector);\n"
+                    # Metadata creation
+                    import json
+                    meta_dict = {
+                        "source": item["source_file"],
+                        "extracted_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    meta_json = json.dumps(meta_dict).replace("'", "''")
+                    
+                    sql = f"INSERT INTO tennis_rules (source_file, rule_id, content, metadata, embedding) VALUES ('{source_esc}', '{rule_id_esc}', '{content_esc}', '{meta_json}'::jsonb, '{embedding_str}'::vector);\n"
                     f.write(sql)
                     f.flush() # Ensure it's saved even if interrupted
                     
@@ -143,15 +155,15 @@ class SQLGenFromText:
 if __name__ == "__main__":
     etl = SQLGenFromText()
     try:
-        text = etl.load_text("full_rules_text.txt")
+        text = etl.load_text("full_rules_text_en.txt")
         print(f"Loaded {len(text)} chars from text file.")
         
-        chunks = etl.split_into_chunks(text, "테니스규정집(2020.11.20 개정판).pdf")
+        chunks = etl.split_into_chunks(text, "2026-rules-of-tennis-english.pdf")
         print(f"Found {len(chunks)} chunks.")
         
-        # Save to insert_rules.sql
-        etl.generate_sql(chunks, "insert_rules.sql")
-        print("Done! SQL saved to insert_rules.sql")
+        # Save to insert_rules_en.sql
+        etl.generate_sql(chunks, "insert_rules_en.sql")
+        print("Done! SQL saved to insert_rules_en.sql")
         
     except Exception as e:
         print(f"Fatal Error: {e}")

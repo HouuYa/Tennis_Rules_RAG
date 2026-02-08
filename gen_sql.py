@@ -77,7 +77,8 @@ class SQLGenETL:
                     source_escaped = item["source_file"].replace("'", "''")
                     rule_escaped = item["rule_id"].replace("'", "''")
                     
-                    sql = f"INSERT INTO tennis_rules (source_file, rule_id, content, embedding) VALUES ('{source_escaped}', '{rule_escaped}', '{content_escaped}', '{embedding_list}'::vector);\n"
+                    metadata = json.dumps({"source": item["source_file"]})
+                    sql = f"INSERT INTO tennis_rules (source_file, rule_id, content, metadata, embedding) VALUES ('{source_escaped}', '{rule_escaped}', '{content_escaped}', '{metadata}'::jsonb, '{embedding_list}'::vector);\n"
                     f.write(sql)
                 except Exception as e:
                     print(f"Error on {item['rule_id']}: {e}")

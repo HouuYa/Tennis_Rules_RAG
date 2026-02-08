@@ -31,14 +31,14 @@ def extract_text_via_gemini(pdf_path):
     
     # Prompt to extract text
     response = model.generate_content([
-        "이 문서의 모든 텍스트를 가능한 한 원본(규칙 번호, 조항 등)을 유지하며 그대로 추출해줘. 요약하지 말고 전체 내용을 출력해.",
+        "Extract all text from this English PDF document exactly as it is, maintaining rule numbers, titles, and section formatting. Do not summarize. Output the full content.",
         sample_file
     ])
     
     return response.text
 
 if __name__ == "__main__":
-    pdf_path = "./테니스규정집(2020.11.20 개정판).pdf"
+    pdf_path = "docs/2026-rules-of-tennis-english.pdf"
     try:
         text = extract_text_via_gemini(pdf_path)
         print("Extraction complete.")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         print(text[:500])
         
         # Save to text file
-        output_path = "full_rules_text.txt"
+        output_path = "full_rules_text_en.txt"
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(text)
         print(f"Saved text to {output_path}")

@@ -1,10 +1,16 @@
+import os
 import re
 import json
+from dotenv import load_dotenv
 from supabase import create_client, Client
 from tqdm import tqdm
 
-url = "https://ctzcgrwjsrvoxjycwtya.supabase.co"
-key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0emNncndqc3J2b3hqeWN3dHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDAzNjAsImV4cCI6MjA4MjY3NjM2MH0.Ni2obAqCCy1ARBy2BxG8sz1Pcbh4exIZS726VsLwOS8"
+load_dotenv()
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_SERVICE_KEY")
+
+if not url or not key:
+    raise ValueError("SUPABASE_URL or SUPABASE_SERVICE_KEY not found in environment")
 
 supabase = create_client(url, key)
 
@@ -14,10 +20,9 @@ def parse_sql(filename):
         content = f.read()
     
     print("Parsing content...")
-    # Regex to capture the 4 fields: source, rule_id, content, embedding
-    # VALUES ('...', '...', '...', '...'::vector);
-    # handle escaped quotes ''
-    pattern = re.compile(r"VALUES \('((?:[^']|'')*)', '((?:[^']|'')*)', '((?:[^']|'')*)', '((?:[^']|'')*)'::vector\)", re.DOTALL)
+    # Regex to capture the 5 fields: source, rule_id, content, metadata, embedding
+    # VALUES ('...', '...', '...', '...'::jsonb, '...'::vector);
+    pattern = re.compile(r"VALUES \('((?:[^']|'')*)', '((?:[^']|'')*)', '((?:[^']|'')*)', '((?:[^']|'')*)'::jsonb, '((?:[^']|'')*)'::vector\)", re.DOTALL)
     
     matches = pattern.findall(content)
     print(f"Found {len(matches)} matches.")
@@ -27,18 +32,21 @@ def parse_sql(filename):
         source = m[0].replace("''", "'")
         rule = m[1].replace("''", "'")
         text = m[2].replace("''", "'")
-        emb_str = m[3] 
+        meta_str = m[3].replace("''", "'")
+        emb_str = m[4] 
         
         try:
             embedding = json.loads(emb_str)
-        except json.JSONDecodeError:
-            print(f"Failed to parse embedding for {rule}")
+            metadata = json.loads(meta_str)
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse JSON for {rule}: {e}")
             continue
         
         data.append({
             "source_file": source,
             "rule_id": rule,
             "content": text,
+            "metadata": metadata,
             "embedding": embedding
         })
     return data
@@ -72,7 +80,7 @@ def upload(data):
 
 if __name__ == "__main__":
     try:
-        data = parse_sql("insert_rules.sql")
+        data = parse_sql("insert_rules_en.sql")
         if data:
             upload(data)
     except Exception as e:
