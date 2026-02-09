@@ -123,7 +123,7 @@ GEMINI_API_KEY="AIzaSyC..."
 ```
 
 ⚠️ **주의**: `.env` 파일은 절대 Git에 커밋하지 마세요!
-
+```bash
 # 전체 실행 (자동화된 경우)
 python etl_tennis_supabase.py
 
