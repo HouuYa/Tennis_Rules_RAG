@@ -41,6 +41,8 @@ GEMINI_API_KEY="자신의_gemini_api_key"
 ```bash
 supabase login
 supabase link --project-ref your-project-ref
+# Function에서 사용할 비밀 키 설정 (필수!)
+supabase secrets set SUPABASE_URL=your_supabase_url SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 supabase functions deploy tennis-rag-query
 supabase functions deploy tennis-etl
 ```

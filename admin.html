@@ -186,82 +186,85 @@
         </div>
     </div>
 
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase 초기화 (Client-side use should be limited to Public roles or safe RPCs)
-        const SUPABASE_URL = 'https://ctzcgrwjsrvoxjycwtya.supabase.co';
-        // ⚠️ Public Key (anon) - 로컬 테스트용. 프로덕션에서는 세션 처리 필요
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0emNncndqc3J2b3hqeWN3dHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDAzNjAsImV4cCI6MjA4MjY3NjM2MH0.Ni2obAqCCy1ARBy2BxG8sz1Pcbh4exIZS726VsLwOS8';
+        (function () {
+            const ADMIN_API_URL = 'https://ctzcgrwjsrvoxjycwtya.supabase.co/functions/v1/tennis-etl';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0emNncndqc3J2b3hqeWN3dHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDAzNjAsImV4cCI6MjA4MjY3NjM2MH0.Ni2obAqCCy1ARBy2BxG8sz1Pcbh4exIZS726VsLwOS8';
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            async function fetchSources() {
+                logStatus("데이터 소스 목록을 가져오는 중...");
+                try {
+                    const response = await fetch(ADMIN_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify({ action: 'list_sources' })
+                    });
+                    const { sources, error } = await response.json();
+                    if (error) throw new Error(error);
 
-        const ADMIN_API_URL = 'https://ctzcgrwjsrvoxjycwtya.supabase.co/functions/v1/tennis-etl';
-
-        async function fetchSources() {
-            logStatus("데이터 소스 목록을 가져오는 중...");
-            try {
-                const response = await fetch(ADMIN_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'list_sources' })
-                });
-                const { sources, error } = await response.json();
-                if (error) throw new Error(error);
-
-                const list = document.getElementById('sourceList');
-                list.innerHTML = '';
-                sources.forEach(source => {
-                    const li = document.createElement('li');
-                    li.className = 'source-item';
-                    li.innerHTML = `
-                        <span class="source-info">${source}</span>
-                        <button class="delete-btn" onclick="deleteSource('${source}')">삭제</button>
-                    `;
-                    list.appendChild(li);
-                });
-                logStatus("목록을 성공적으로 가져왔습니다.");
-            } catch (err) {
-                logStatus("오류 발생: " + err.message);
+                    const list = document.getElementById('sourceList');
+                    list.innerHTML = '';
+                    sources.forEach(source => {
+                        const li = document.createElement('li');
+                        li.className = 'source-item';
+                        li.innerHTML = `
+                            <span class="source-info">${source}</span>
+                            <button class="delete-btn" onclick="window.deleteSource('${source}')">삭제</button>
+                        `;
+                        list.appendChild(li);
+                    });
+                    logStatus("목록을 성공적으로 가져왔습니다.");
+                } catch (err) {
+                    logStatus("오류 발생: " + err.message);
+                }
             }
-        }
 
-        async function deleteSource(fileName) {
-            if (!confirm(`'${fileName}' 소스의 모든 데이터를 삭제하시겠습니까?`)) return;
+            window.fetchSources = fetchSources;
 
-            logStatus(`'${fileName}' 삭제 시도 중...`);
-            try {
-                const response = await fetch(ADMIN_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'delete_source', fileName })
-                });
-                const { message, error } = await response.json();
-                if (error) throw new Error(error);
+            window.deleteSource = async function (fileName) {
+                if (!confirm(`'${fileName}' 소스의 모든 데이터를 삭제하시겠습니까?`)) return;
 
-                logStatus(message);
-                fetchSources(); // 리프레시
-            } catch (err) {
-                logStatus("삭제 실패: " + err.message);
+                logStatus(`'${fileName}' 삭제 시도 중...`);
+                try {
+                    const response = await fetch(ADMIN_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify({ action: 'delete_source', fileName })
+                    });
+                    const { message, error } = await response.json();
+                    if (error) throw new Error(error);
+
+                    logStatus(message);
+                    fetchSources(); // 리프레시
+                } catch (err) {
+                    logStatus("삭제 실패: " + err.message);
+                }
+            };
+
+            function logStatus(msg) {
+                const box = document.getElementById('statusBox');
+                box.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+                box.scrollTop = box.scrollHeight;
             }
-        }
 
-        function logStatus(msg) {
-            const box = document.getElementById('statusBox');
-            box.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
-            box.scrollTop = box.scrollHeight;
-        }
+            window.startUpload = function () {
+                logStatus("업로드 프로세스 기능을 준비 중입니다...");
+                logStatus("1. PDF 텍스트 추출 (Gemini API 호출)");
+                logStatus("2. 청크 분할 및 임베딩 생성");
+                logStatus("3. Supabase Batch Insert");
+            };
 
-        function startUpload() {
-            logStatus("업로드 프로세스 기능을 준비 중입니다...");
-            logStatus("1. PDF 텍스트 추출 (Gemini API 호출)");
-            logStatus("2. 청크 분할 및 임베딩 생성");
-            logStatus("3. Supabase Batch Insert");
-            // ... 실제 구현은 Python 스크립트의 로직을 JS/Deno로 옮겨야 함
-        }
-
-        // 초기 로드
-        window.onload = fetchSources;
+            // 초기 로드
+            window.onload = fetchSources;
+        })();
     </script>
 </body>
 

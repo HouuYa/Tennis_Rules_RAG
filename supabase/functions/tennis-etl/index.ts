@@ -18,19 +18,32 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      throw new Error("Server configuration error: Missing environment variables.");
+    }
+
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action, fileName } = await req.json();
+    console.log(`[tennis-etl] Received action: ${action}, fileName: ${fileName}`);
 
     if (action === "list_sources") {
       const { data, error } = await supabaseClient
         .from('tennis_rules')
         .select('source_file');
 
-      if (error) throw error;
+      if (error) {
+        console.error("[tennis-etl] Database error:", error);
+        throw error;
+      }
+
       const sources = [...new Set(data.map((item: any) => item.source_file))];
+      console.log(`[tennis-etl] Found ${sources.length} unique sources.`);
+
       return new Response(JSON.stringify({ sources }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
@@ -39,12 +52,18 @@ serve(async (req) => {
     if (action === "delete_source") {
       if (!fileName) throw new Error("fileName is required for deletion");
 
-      const { data, error } = await supabaseClient
+      console.log(`[tennis-etl] Deleting source: ${fileName}`);
+      const { data, error, count } = await supabaseClient
         .from('tennis_rules')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('source_file', fileName);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[tennis-etl] Delete error:", error);
+        throw error;
+      }
+
+      console.log(`[tennis-etl] Deleted rows count: ${count}`);
       return new Response(JSON.stringify({ message: `Successfully deleted ${fileName}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
@@ -56,6 +75,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    console.error("[tennis-etl] Unhandled error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
