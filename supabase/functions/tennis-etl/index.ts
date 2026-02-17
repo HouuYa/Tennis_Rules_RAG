@@ -20,15 +20,40 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    // const authAdminKey = Deno.env.get("AUTH_ADMIN_KEY"); // Future improvement: Use environment variable
+    // For now, using a simple check against the Service Role Key or a dedicated secret is recommended.
+    // However, since the client (admin.html) sends the Service Role Key as 'apikey' (based on previous setup guide instructions which were risky but functional for this "admin" context),
+    // we should ideally transition to a separate admin key.
+
+    // To fix the immediate "No Authentication" vulnerability reported:
+    // We will require the 'x-admin-key' header to match the Service Role Key (as the admin is the only one who should have it).
+    // Note: Sharing Service Role Key with client is BAD practice.
+    // Better practice: User Auth (Supabase Auth) -> Check if user is admin.
+    // Current "Quick Fix" for existing architecture: Check for a specific secret header.
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
       throw new Error("Server configuration error: Missing environment variables.");
     }
 
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    // AUTH CHECK
+    // In a real production app, use Supabase Auth (getUser).
+    // Here, we enforce that the request MUST have the Service Role Key in the Authorization (or custom) header to prove it is an admin operation.
+    // Since admin.html uses Anon Key by default, we need to update admin.html to prompt for an Admin Key (Service Role Key) or a specific password.
 
-    const { action, fileName } = await req.json();
+    // Let's implement a simple "Admin Secret" check.
+    const reqJson = await req.json();
+    const { action, fileName, adminKey } = reqJson; // Expect adminKey in body
+
+    if (adminKey !== supabaseServiceKey) {
+      console.error("[tennis-etl] Unauthorized access attempt.");
+      return new Response(JSON.stringify({ error: "Unauthorized: Invalid Admin Key" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     console.log(`[tennis-etl] Received action: ${action}, fileName: ${fileName}`);
 
     if (action === "list_sources") {

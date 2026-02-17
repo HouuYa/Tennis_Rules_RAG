@@ -3,6 +3,8 @@ import re
 import google.generativeai as genai
 import numpy as np
 from tqdm import tqdm
+import json
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -87,7 +89,6 @@ class SQLGenFromText:
         return chunks
 
     def generate_sql(self, chunks, output_file):
-        import time
         print(f"Generating SQL for {len(chunks)} chunks...")
         with open(output_file, "w", encoding="utf-8") as f:
             for item in tqdm(chunks):
@@ -134,8 +135,6 @@ class SQLGenFromText:
                     # Postgres vector format is '[1,2,3]'
                     embedding_str = str(embedding_list)
                     
-                    # Metadata creation
-                    import json
                     meta_dict = {
                         "source": item["source_file"],
                         "extracted_at": time.strftime("%Y-%m-%d %H:%M:%S")

@@ -53,3 +53,6 @@ temp/
 
 # Local Netlify folder
 .netlify
+
+# Supabase local dev files
+supabase/.temp/

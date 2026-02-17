@@ -171,7 +171,11 @@
             <div class="section upload-section">
                 <h2>📤 새 규칙 데이터 업로드 (Beta)</h2>
                 <div class="form-group">
-                    <label>Gemini API Key</label>
+                    <label>Admin Secret Key (Supabase Service Role Key)</label>
+                    <input type="password" id="adminSecretKey" placeholder="관리자 비밀키 입력">
+                </div>
+                <div class="form-group">
+                    <label>Gemini API Key (업로드 시 필요)</label>
                     <input type="password" id="adminApiKey" placeholder="API Key">
                 </div>
                 <div class="form-group">
@@ -191,7 +195,22 @@
             const ADMIN_API_URL = 'https://ctzcgrwjsrvoxjycwtya.supabase.co/functions/v1/tennis-etl';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0emNncndqc3J2b3hqeWN3dHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDAzNjAsImV4cCI6MjA4MjY3NjM2MH0.Ni2obAqCCy1ARBy2BxG8sz1Pcbh4exIZS726VsLwOS8';
 
+            function getAdminKey() {
+                const key = document.getElementById('adminSecretKey').value;
+                if (!key) {
+                    alert("관리자 비밀키를 입력해주세요.");
+                    return null;
+                }
+                return key;
+            }
+
             async function fetchSources() {
+                const adminKey = document.getElementById('adminSecretKey').value;
+                if (!adminKey) {
+                    logStatus("관리자 비밀키가 입력되지 않았습니다. 목록을 가져오려면 키를 입력하고 새로고침하세요.");
+                    return;
+                }
+
                 logStatus("데이터 소스 목록을 가져오는 중...");
                 try {
                     const response = await fetch(ADMIN_API_URL, {
@@ -201,20 +220,35 @@
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                             'apikey': SUPABASE_ANON_KEY
                         },
-                        body: JSON.stringify({ action: 'list_sources' })
+                        body: JSON.stringify({ action: 'list_sources', adminKey })
                     });
-                    const { sources, error } = await response.json();
-                    if (error) throw new Error(error);
+                    const result = await response.json();
 
+                    if (!response.ok) throw new Error(result.error || "목록 가져오기 실패");
+
+                    const { sources } = result;
                     const list = document.getElementById('sourceList');
                     list.innerHTML = '';
+
+                    if (sources.length === 0) {
+                        list.innerHTML = '<li class="source-item">등록된 소스가 없습니다.</li>';
+                    }
+
                     sources.forEach(source => {
                         const li = document.createElement('li');
                         li.className = 'source-item';
-                        li.innerHTML = `
-                            <span class="source-info">${source}</span>
-                            <button class="delete-btn" onclick="window.deleteSource('${source}')">삭제</button>
-                        `;
+
+                        const span = document.createElement('span');
+                        span.className = 'source-info';
+                        span.textContent = source;
+
+                        const btn = document.createElement('button');
+                        btn.className = 'delete-btn';
+                        btn.textContent = '삭제';
+                        btn.onclick = () => window.deleteSource(source);
+
+                        li.appendChild(span);
+                        li.appendChild(btn);
                         list.appendChild(li);
                     });
                     logStatus("목록을 성공적으로 가져왔습니다.");
@@ -226,6 +260,9 @@
             window.fetchSources = fetchSources;
 
             window.deleteSource = async function (fileName) {
+                const adminKey = getAdminKey();
+                if (!adminKey) return;
+
                 if (!confirm(`'${fileName}' 소스의 모든 데이터를 삭제하시겠습니까?`)) return;
 
                 logStatus(`'${fileName}' 삭제 시도 중...`);
@@ -237,12 +274,13 @@
                             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                             'apikey': SUPABASE_ANON_KEY
                         },
-                        body: JSON.stringify({ action: 'delete_source', fileName })
+                        body: JSON.stringify({ action: 'delete_source', fileName, adminKey })
                     });
-                    const { message, error } = await response.json();
-                    if (error) throw new Error(error);
+                    const result = await response.json();
 
-                    logStatus(message);
+                    if (!response.ok) throw new Error(result.error || "삭제 실패");
+
+                    logStatus(result.message);
                     fetchSources(); // 리프레시
                 } catch (err) {
                     logStatus("삭제 실패: " + err.message);
