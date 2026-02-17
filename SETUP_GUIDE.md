@@ -29,6 +29,43 @@ SUPABASE_SERVICE_KEY="자신의_service_role_key"
 GEMINI_API_KEY="자신의_gemini_api_key"
 ```
 
+⚠️ **주의**: `.env` 파일은 절대 Git에 커밋하지 마세요!
+
+### 3. 선택적 옵션 (Advanced)
+
+```bash
+# 드라이 런 (DB에 쓰지 않고 테스트만)
+DRY_RUN=1 python etl_tennis_supabase.py
+
+# 임베딩 생성 스킵 (청크 분할만 테스트)
+SKIP_EMBEDDING=1 python etl_tennis_supabase.py
+
+# 원격 파일 다운로드 스킵 (로컬 PDF만 처리)
+SKIP_REMOTE=1 python etl_tennis_supabase.py
+```
+
+### 4. 실행 결과 확인
+
+```bash
+# 로그 예시
+[INFO] 🔥 ETL 프로세스 시작
+[INFO] 📖 텍스트 추출 중: ./테니스규정집(2020.11.20 개정판).pdf
+[INFO] ✂️  Chunking 완료: 156개 조항 생성
+[INFO] 🚀 Supabase 업로드 시작 (총 156개, 배치 사이즈 10)
+[INFO] ✅ 파일 처리 완료: 테니스규정집(2020.11.20 개정판).pdf
+[INFO] 🎉 모든 작업이 완료되었습니다.
+```
+
+Supabase에서 확인:
+```sql
+SELECT
+  source_file,
+  COUNT(*) as chunk_count
+FROM tennis_rules
+GROUP BY source_file;
+
+```
+
 ---
 
 ## 🗄️ 데이터베이스 및 백엔드 설정
