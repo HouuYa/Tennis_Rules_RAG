@@ -1,76 +1,102 @@
-# 🎾 Tennis Rules RAG
+# Tennis Mate (테니스 메이트) - Rules RAG Backend
 
-**ITF 및 KTA 테니스 규칙집 기반 지능형 질의응답 시스템**
+<div align="center">
 
-이 프로젝트는 테니스 규칙 PDF에서 조항별 데이터를 추출하고, 벡터 DB(Supabase)에 적재하여, 사용자의 질문에 가장 적합한 규칙을 찾아 AI(Gemini)가 답변해주는 RAG 시스템입니다.
+![Version](https://img.shields.io/badge/version-1.4.0-brightgreen)
+![Status](https://img.shields.io/badge/Status-Sandbox%20%2F%20API-blue)
+![Gemini](https://img.shields.io/badge/AI-Gemini%20RAG-8E75B2?logo=google)
+![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7?logo=netlify)
+
+**테니스 규칙 기반 지능형 RAG (Retrieval-Augmented Generation) 시스템**
+<br/>
+This repository serves as a specialized sandbox for experimenting with [rule-grounded RAG](https://github.com/HouuYa/Tennis_Rules_RAG), specifically designed to power the rules consultancy feature in the main **Tennis Mate** application.
+
+[웹앱 보기 (Sandbox)](https://tennis-rules-rag.netlify.app/) | [기술 아키텍처](./ARCHITECTURE.md) | [설정 가이드](./SETUP_GUIDE.md)
+
+</div>
 
 ---
 
-## 🚀 ETL 파이프라인 (5단계)
+## 📖 개요 (Overview)
 
-테니스 규칙 PDF를 시스템에서 사용할 수 있도록 변환하고 적재하는 핵심 프로세스입니다.
+본 프로젝트는 테니스 클럽 모임이나 경기 중 발생할 수 있는 규칙 분쟁을 AI가 판별해주는 **지능형 규칙 상담기**입니다.
+
+이 시스템은 별도의 서비스를 위한 독립 프로젝트로 진행되었으며, 메인 프로젝트인 **Tennis Mate**의 AI 코환 기능을 지원하는 백엔드 엔진 역할을 수행합니다. ITF(국제테니스연맹) 및 KTA(대한테니스협회) 규칙 데이터를 학습/검색 데이터로 활용합니다.
+
+---
+
+## 🚀 주요 기능 (Key Features)
+
+### 1. 🤖 지능형 규칙 검색 (RAG)
+- **정확한 답변**: 일반적인 AI 지식이 아닌, 실제 **규칙 본문**에 기반하여 답변을 생성합니다.
+- **출처 기반 답변**: "규칙 몇 조에 의거하여..."와 같이 답변의 근거가 되는 조항을 함께 제시합니다.
+- **다양한 모델 선택**: 사용자의 API Key를 사용하여 **Gemini Flash, Pro** 등 최신 모델을 동적으로 선택해 사용할 수 있습니다.
+
+### 2. 📁 데이터 ETL 파이프라인
+- **고품질 텍스트 추출**: 단순 OCR이 아닌 Gemini API를 활용해 PDF 내의 복잡한 표와 구조를 완벽하게 텍스트로 전환합니다.
+- **벡터 데이터베이스**: Supabase `pgvector`를 활용하여 수천 개의 조항 중 질문과 가장 관련 있는 문장을 밀리초 단위로 찾아냅니다.
+
+### 3. ⚙️ 관리자 대시보드
+- **데이터 소스 관리**: 어떤 규칙 파일이 적재되어 있는지 확인하고 필요 없는 파일을 실시간으로 삭제할 수 있습니다.
+- **실시간 통계**: 적재된 데이터의 용량과 토큰 사용 현황을 모니터링합니다.
+
+---
+
+## 🏗 시스템 아키텍처 (Architecture)
+
+본 시스템은 다음과 같은 흐름으로 작동합니다:
 
 ```mermaid
 graph LR
-    A[PDF 문서] --> B[extract_pdf_gemini.py]
-    B --> C[full_rules_text.txt]
-    C --> D[gen_sql_from_txt.py]
-    D --> E[insert_rules.sql]
-    E --> F[upload_rules.py]
-    F --> G[(Supabase pgvector)]
+    A[사용자 질문] --> B[Gemini Embedding]
+    B --> C[Supabase pgvector 검색]
+    C --> D[관련 규칙 추출]
+    D --> E[Gemini Pro 답변 생성]
+    E --> F[최종 답변 + 출처 표시]
 ```
 
-- **Extract**: `extract_pdf_gemini.py` (Gemini를 이용한 고품질 텍스트 추출)
-- **Buffer**: `full_rules_text.txt` (중간 고품질 텍스트 저장)
-- **Transform**: `gen_sql_from_txt.py` (조항별 Chunking 및 `gemini-embedding-001` 벡터화)
-- **SQL Gen**: `insert_rules.sql` (임베딩이 포함된 SQL 파일 생성)
-- **Load**: `upload_rules.py` (Supabase DB 최종 적재)
+자세한 내부 구조는 [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요.
 
 ---
 
-## 🛠️ 주요 기능
+## 🛠 기술 스택 (Tech Stack)
 
-- **정확한 답변**: 최신 Gemini 모델들을 동적으로 선택하여 규칙에 기반한 신뢰도 높은 답변 제공
-- **출처 명시**: 답변과 함께 참고한 규칙 조항(`rule_id`) 및 원문(`content`)을 즉시 확인 가능
-- **관리자 기능**: `Admin Dashboard`를 통해 데이터 소스 조회 및 실시간 삭제/관리 지원
-- **사용자 중심**: 별도의 서버 설치 없이 브라우저에서 자신의 Gemini API Key로 바로 사용 가능 (최신 모델 동적 로딩 및 서비스 종료일 안내 기능 포함)
+| 분류 | 기술 |
+|------|------|
+| **Frontend** | Vanilla JS, CSS3, Glassmorphism UI |
+| **Backend** | Supabase Edge Functions (Deno/TypeScript) |
+| **Database** | Postgres (pgvector) |
+| **AI Engine** | Google Gemini API (Embedding/Flash/Pro) |
+| **ETL Tools** | Python, google-generativeai, pdfplumber |
+| **Hosting** | Netlify |
 
 ---
 
-## 💻 빠른 시작
+## ⚡ 시작하기 (Getting Started)
 
-### 1. 환경 설정
+### 1. 로컬 환경 실행
 ```bash
-pip install -r requirements.txt
-cp .env.example .env
-# .env 파일에 SUPABASE_URL, SERVICE_KEY, GEMINI_API_KEY 입력
-```
-
-### 2. 데이터베이스 초기화
-Supabase SQL Editor에서 `supabase_setup.sql`을 실행하세요.
-
-### 3. 데이터 적재 (ETL)
-```bash
-python gen_sql_from_txt.py
-python upload_rules.py
-```
-
-### 4. 웹 실행
-```bash
+git clone https://github.com/HouuYa/Tennis_Rules_RAG.git
+cd Tennis_Rules_RAG
 python -m http.server 8000
-# 접속: http://localhost:8000/index.html
 ```
+브라우저에서 `http://localhost:8000/index.html`에 접속합니다.
+
+### 2. 설정 가이드
+상세한 설치 및 배포 방법은 [SETUP_GUIDE.md](./SETUP_GUIDE.md)를 확인하세요.
 
 ---
 
-## 🏗️ 시스템 아키텍처
-자세한 기술 설계 및 구성도는 [ARCHITECTURE.md](ARCHITECTURE.md)를 참조하세요.
+## 🤝 관련 프로젝트 (Related Projects)
+
+- **[Tennis Mate](https://github.com/HouuYa/tennis-mate)**: 본 RAG 시스템을 활용하는 상위 메인 프로젝트 (종합 테니스 경기 관리 앱)
 
 ---
 
-## 📄 설정 가이드
-상세한 설치 및 배포 단계는 [SETUP_GUIDE.md](SETUP_GUIDE.md)를 참조하세요.
+<div align="center">
 
----
+**Tennis Rules RAG Engine**
 
-Made with ❤️ for Tennis Players 🎾
+Made with ❤️ & 🎾 by [HouuYa](https://github.com/HouuYa)
+
+</div>
