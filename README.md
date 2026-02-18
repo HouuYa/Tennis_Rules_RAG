@@ -30,10 +30,10 @@ graph LR
 
 ## 🛠️ 주요 기능
 
-- **정확한 답변**: Gemini 1.5 Flash를 사용하여 규칙에 기반한 신뢰도 높은 답변 제공
+- **정확한 답변**: 최신 Gemini 모델들을 동적으로 선택하여 규칙에 기반한 신뢰도 높은 답변 제공
 - **출처 명시**: 답변과 함께 참고한 규칙 조항(`rule_id`) 및 원문(`content`)을 즉시 확인 가능
 - **관리자 기능**: `Admin Dashboard`를 통해 데이터 소스 조회 및 실시간 삭제/관리 지원
-- **사용자 중심**: 별도의 서버 설치 없이 브라우저에서 자신의 Gemini API Key로 바로 사용 가능
+- **사용자 중심**: 별도의 서버 설치 없이 브라우저에서 자신의 Gemini API Key로 바로 사용 가능 (최신 모델 동적 로딩 및 서비스 종료일 안내 기능 포함)
 
 ---
 
@@ -58,7 +58,7 @@ python upload_rules.py
 ### 4. 웹 실행
 ```bash
 python -m http.server 8000
-# 접속: http://localhost:8000/tennis_chat.html
+# 접속: http://localhost:8000/index.html
 ```
 
 ---

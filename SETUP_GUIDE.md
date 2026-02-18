@@ -100,13 +100,13 @@ supabase functions deploy tennis-etl
 ## 🌐 웹 인터페이스 및 배포
 
 ### 1. 로컬 실행
-`tennis_chat.html` 파일 내의 `EDGE_FUNCTION_URL`을 본인의 URL로 수정한 후 실행합니다.
+`index.html` 파일 내의 `EDGE_FUNCTION_URL`을 본인의 URL로 수정한 후 실행합니다.
 ```bash
 python -m http.server 8000
 ```
 
 ### 2. Admin Dashboard 사용법
-- `admin.html`에 접속하여 현재 DB에 적재된 `source_file` 목록을 확인합니다.
+- `/admin`에 접속하여 현재 DB에 적재된 `source_file` 목록을 확인합니다.
 - 특정 파일과 관련된 데이터를 삭제하거나 업로드 상태를 모니터링할 수 있습니다.
 
 ### 3. Netlify 배포
@@ -128,4 +128,4 @@ A: `.env` 파일의 키가 유효한지, 그리고 브라우저 UI에서 입력�
 
 ---
 
-*최종 업데이트: 2026-02-08*
+*최종 업데이트: 2026-02-18*

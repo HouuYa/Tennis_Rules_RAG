@@ -50,7 +50,7 @@ sequenceDiagram
 ## 🛠️ 기술 스택 상세
 - **Frontend**: Vanilla HTML5, CSS3, JavaScript (Netlify 호스팅)
 - **Serverless**: Supabase Edge Functions (Deno 기반 TypeScript)
-- **AI/ML**: Google Gemini API (Embedding-001, Flash-1.5)
+- **AI/ML**: Google Gemini API (Embedding-001, Flash, Pro 등 최신 모델군)
 - **Database**: Supabase PostgreSQL with `pgvector` extension
 - **ETL Tooling**: Python 3.x (pdfplumber, google-generativeai)
 
