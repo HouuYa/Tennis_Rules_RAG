@@ -171,8 +171,8 @@
             <div class="section upload-section">
                 <h2>📤 새 규칙 데이터 업로드 (Beta)</h2>
                 <div class="form-group">
-                    <label>Admin Secret Key (Supabase Service Role Key)</label>
-                    <input type="password" id="adminSecretKey" placeholder="관리자 비밀키 입력">
+                    <label>Admin Secret Key (관리자 비밀번호 또는 Service Role Key)</label>
+                    <input type="password" id="adminSecretKey" placeholder="기본적으로 로그인 비밀번호가 사용됩니다">
                 </div>
                 <div class="form-group">
                     <label>Gemini API Key (업로드 시 필요)</label>
@@ -203,20 +203,19 @@
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0emNncndqc3J2b3hqeWN3dHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDAzNjAsImV4cCI6MjA4MjY3NjM2MH0.Ni2obAqCCy1ARBy2BxG8sz1Pcbh4exIZS726VsLwOS8';
 
             function getAdminKey() {
-                const key = document.getElementById('adminSecretKey').value;
-                if (!key) {
-                    alert("관리자 비밀키를 입력해주세요.");
-                    return null;
-                }
-                return key;
+                const manualKey = document.getElementById('adminSecretKey').value;
+                if (manualKey) return manualKey;
+
+                const sessionPw = sessionStorage.getItem('admin_pw');
+                if (sessionPw) return sessionPw;
+
+                alert("관리자 비밀키 또는 비밀번호가 필요합니다.");
+                return null;
             }
 
             async function fetchSources() {
-                const adminKey = document.getElementById('adminSecretKey').value;
-                if (!adminKey) {
-                    logStatus("관리자 비밀키가 입력되지 않았습니다. 목록을 가져오려면 키를 입력하고 새로고침하세요.");
-                    return;
-                }
+                const adminKey = getAdminKey();
+                if (!adminKey) return;
 
                 logStatus("데이터 소스 목록을 가져오는 중...");
                 try {

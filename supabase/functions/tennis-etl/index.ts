@@ -41,13 +41,13 @@ serve(async (req) => {
     // Here, we enforce that the request MUST have the Service Role Key in the Authorization (or custom) header to prove it is an admin operation.
     // Since admin.html uses Anon Key by default, we need to update admin.html to prompt for an Admin Key (Service Role Key) or a specific password.
 
-    // Let's implement a simple "Admin Secret" check.
+    const adminPassword = Deno.env.get("ADMIN_PASSWORD");
     const reqJson = await req.json();
     const { action, fileName, adminKey } = reqJson; // Expect adminKey in body
 
-    if (adminKey !== supabaseServiceKey) {
+    if (adminKey !== supabaseServiceKey && adminKey !== adminPassword) {
       console.error("[tennis-etl] Unauthorized access attempt.");
-      return new Response(JSON.stringify({ error: "Unauthorized: Invalid Admin Key" }), {
+      return new Response(JSON.stringify({ error: "Unauthorized: Invalid Admin Key or Password" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
@@ -100,8 +100,8 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("[tennis-etl] Unhandled error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[tennis-etl] Unhandled error:", (error as any).message);
+    return new Response(JSON.stringify({ error: (error as any).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
