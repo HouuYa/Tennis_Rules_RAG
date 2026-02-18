@@ -4,8 +4,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>테니스 규칙 챗봇 (RAG)</title>
+    <title>ITF 테니스 규칙 AI 전문가 | Tennis Rules RAG</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;700&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --primary: #764ba2;
+            --primary-light: #667eea;
+            --accent: #d4e157;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2d3436;
+            --text-dim: #636e72;
+            --bot-bubble: #ffffff;
+            --user-bubble: #667eea;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,84 +30,126 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+            background: var(--bg-gradient);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
+            color: var(--text-main);
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            background: var(--glass-bg);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            max-width: 900px;
             width: 100%;
-            height: 90vh;
+            height: 92vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            position: relative;
         }
 
+        /* Header Styling */
         .header {
-            padding: 25px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 20px 20px 0 0;
+            padding: 20px 25px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
         }
 
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
+        .header-title h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
+        .header-title p {
+            font-size: 12px;
+            color: var(--text-dim);
         }
 
-        .config-section {
-            padding: 20px;
+        .nav-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .admin-link {
+            text-decoration: none;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+
+        .admin-link:hover {
+            transform: rotate(45deg);
+        }
+
+        /* Config Section */
+        .config-overlay {
+            padding: 15px 25px;
             background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #eee;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
 
-        .config-section input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border 0.3s;
+        .input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
 
-        .config-section input:focus {
+        .input-wrapper label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+
+        .config-overlay input,
+        .config-overlay select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .config-overlay input:focus,
+        .config-overlay select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary-light);
         }
 
-        .config-section small {
-            display: block;
-            margin-top: 5px;
-            color: #666;
-        }
-
+        /* Chat Area */
         .chat-area {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            background: #fafafa;
+            padding: 25px;
+            background: #fdfdfd;
+            scroll-behavior: smooth;
         }
 
         .message {
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             display: flex;
-            gap: 10px;
-            animation: slideIn 0.3s ease;
+            gap: 12px;
+            animation: fadeIn 0.4s ease-out;
         }
 
-        @keyframes slideIn {
+        @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(10px);
@@ -106,121 +165,215 @@
             flex-direction: row-reverse;
         }
 
-        .message .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         .message.user .avatar {
-            background: #667eea;
-        }
-
-        .message.bot .avatar {
-            background: #764ba2;
-        }
-
-        .message .bubble {
-            max-width: 70%;
-            padding: 12px 18px;
-            border-radius: 18px;
-            line-height: 1.5;
-            word-wrap: break-word;
-        }
-
-        .message.user .bubble {
-            background: #667eea;
+            background: var(--primary-light);
             color: white;
         }
 
+        .message.bot .avatar {
+            background: var(--primary);
+            color: white;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .message.user .bubble {
+            background: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
         .message.bot .bubble {
-            background: white;
-            color: #333;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background: var(--bot-bubble);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f0f0f0;
         }
 
-        .sources {
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #e0e0e0;
-            font-size: 12px;
-            color: #666;
+        /* Bot Content Formatting (HTML) */
+        .bubble p {
+            margin-bottom: 12px;
         }
 
-        .sources-title {
+        .bubble ul,
+        .bubble ol {
+            margin-bottom: 12px;
+            padding-left: 20px;
+        }
+
+        .bubble li {
+            margin-bottom: 6px;
+        }
+
+        .bubble strong {
+            color: var(--primary);
+        }
+
+        .bubble sup {
+            color: var(--primary-light);
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-left: 2px;
         }
 
-        .source-item {
+        .bubble hr {
+            border: 0;
+            border-top: 1px solid #eee;
+            margin: 15px 0;
+        }
+
+        .bubble h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        /* Sources Styling */
+        .sources-dropdown {
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .sources-toggle {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 600;
             padding: 5px 0;
+            user-select: none;
         }
 
-        .input-area {
-            padding: 20px;
+        .sources-content {
+            margin-top: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px;
+            display: none;
+        }
+
+        .source-card {
             background: white;
-            border-top: 1px solid #e0e0e0;
-            border-radius: 0 0 20px 20px;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .source-card-header {
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .source-card-body {
+            color: var(--text-dim);
+            font-size: 11px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px 25px;
+            background: white;
+            border-top: 1px solid #eee;
         }
 
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 100px;
+            border: 1px solid #eee;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
         }
 
         .input-group input {
             flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
             font-size: 15px;
-            transition: border 0.3s;
+            font-family: inherit;
         }
 
         .input-group input:focus {
             outline: none;
-            border-color: #667eea;
         }
 
-        .input-group button {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .send-btn {
+            background: var(--primary);
             color: white;
             border: none;
-            border-radius: 25px;
-            font-size: 15px;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s, background 0.2s;
         }
 
-        .input-group button:hover:not(:disabled) {
+        .send-btn:hover:not(:disabled) {
+            background: var(--primary-light);
             transform: scale(1.05);
         }
 
-        .input-group button:disabled {
-            opacity: 0.6;
+        .send-btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .loading {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
+        /* Loading Dots */
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+            padding: 10px 0;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--primary-light);
             border-radius: 50%;
-            background: #667eea;
             animation: bounce 1.4s infinite ease-in-out both;
         }
 
-        .loading:nth-child(1) {
+        .dot:nth-child(1) {
             animation-delay: -0.32s;
         }
 
-        .loading:nth-child(2) {
+        .dot:nth-child(2) {
             animation-delay: -0.16s;
         }
 
@@ -236,139 +389,151 @@
                 transform: scale(1);
             }
         }
+
+        @media (max-width: 600px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .bubble {
+                max-width: 90%;
+            }
+
+            .config-overlay {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>🎾 테니스 규칙 챗봇</h1>
-                    <p>ITF 및 KTA 규칙집 기반 RAG 시스템</p>
-                </div>
-                <a href="/admin" style="color: white; font-size: 24px; text-decoration: none;"
-                    title="Admin Dashboard">⚙️</a>
+        <header class="header">
+            <div class="header-title">
+                <h1>🎾 ITF RuleExpert</h1>
+                <p>테니스 규칙 RAG 시스템 (Beta)</p>
             </div>
-        </div>
+            <div class="nav-actions">
+                <a href="/admin" class="admin-link" title="관리자 설정">⚙️</a>
+            </div>
+        </header>
 
-        <div class="config-section">
-            <input type="text" id="geminiApiKey" placeholder="Gemini API Key를 입력하세요 (AI Coach와 동일한 키 사용)">
-            <small>💡 API 키는 브라우저에만 저장되며, 서버에 영구적으로 기록되지 않습니다</small>
-            <small>⚠️ LocalStorage는 XSS 공격에 취약할 수 있으므로, 신뢰할 수 있는 환경에서만 사용하세요</small>
-        </div>
+        <section class="config-overlay">
+            <div class="input-wrapper">
+                <label for="geminiApiKey">Gemini API Key</label>
+                <input type="password" id="geminiApiKey" placeholder="API 키를 입력하세요">
+            </div>
+            <div class="input-wrapper">
+                <label for="geminiModel">Selected Model</label>
+                <select id="geminiModel">
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fastest)</option>
+                    <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Balanced)</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Powerful)</option>
+                </select>
+            </div>
+        </section>
 
         <div class="chat-area" id="chatArea">
+            <!-- Messages will be injected here -->
             <div class="message bot">
                 <div class="avatar">🤖</div>
                 <div class="bubble">
-                    안녕하세요! 저는 테니스 규칙 전문가입니다.<br>
-                    ITF와 KTA 규칙집을 기반으로 질문에 답변해드립니다.<br><br>
-                    예시 질문:<br>
-                    • "서브 폴트는 어떤 경우인가요?"<br>
-                    • "타이브레이크 규칙을 알려주세요"<br>
-                    • "풋 폴트는 무엇인가요?"
+                    <p>반갑습니다! 저는 <strong>ITF(국제테니스연맹)</strong> 규칙 전문가입니다. 궁금하신 테니스 규칙을 물어봐 주세요.</p>
+                    <p><small>예: "매치 타이브레이크는 어떻게 진행되나요?", "렛 상황에 대해 설명해줘"</small></p>
                 </div>
             </div>
         </div>
 
         <div class="input-area">
             <div class="input-group">
-                <input type="text" id="questionInput" placeholder="테니스 규칙에 대해 질문하세요..."
-                    onkeypress="if(event.key==='Enter') sendQuestion()">
-                <button onclick="sendQuestion()" id="sendBtn">전송</button>
+                <input type="text" id="questionInput" placeholder="테니스 규칙에 대해 질문하세요..." autocomplete="off">
+                <button onclick="sendQuestion()" id="sendBtn" class="send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // 👉 중요: 아래 URL을 실제 배포된 Edge Function URL로 교체하세요!
-        // 예: 'https://your-project-ref.supabase.co/functions/v1/tennis-rag-query'
         const EDGE_FUNCTION_URL = 'https://ctzcgrwjsrvoxjycwtya.supabase.co/functions/v1/tennis-rag-query';
 
-        // 로컬 스토리지에서 API 키 로드
+        // Load saved config
         document.addEventListener('DOMContentLoaded', () => {
             const savedKey = localStorage.getItem('gemini_api_key');
-            if (savedKey) {
-                document.getElementById('geminiApiKey').value = savedKey;
-            }
+            const savedModel = localStorage.getItem('gemini_model');
+            if (savedKey) document.getElementById('geminiApiKey').value = savedKey;
+            if (savedModel) document.getElementById('geminiModel').value = savedModel;
+
+            // Focus input
+            document.getElementById('questionInput').focus();
         });
 
-        // API 키 저장
-        document.getElementById('geminiApiKey').addEventListener('change', (e) => {
-            localStorage.setItem('gemini_api_key', e.target.value);
-        });
+        // Save config on change
+        document.getElementById('geminiApiKey').addEventListener('change', (e) => localStorage.setItem('gemini_api_key', e.target.value));
+        document.getElementById('geminiModel').addEventListener('change', (e) => localStorage.setItem('gemini_model', e.target.value));
 
-        // 텍스트를 안전하게 HTML 엔티티로 변환 (XSS 방지)
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
+        // Enter key handling
+        document.getElementById('questionInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendQuestion();
+        });
 
         function addMessage(text, isUser, sources = null) {
             const chatArea = document.getElementById('chatArea');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
 
-            // 아바타 생성
             const avatar = document.createElement('div');
             avatar.className = 'avatar';
             avatar.textContent = isUser ? '👤' : '🤖';
 
-            // 메시지 버블 생성
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
 
-            // 텍스트 안전하게 추가 (XSS 방지)
-            const textLines = text.split('\n');
-            textLines.forEach((line, index) => {
-                const textNode = document.createTextNode(line);
-                bubble.appendChild(textNode);
-                if (index < textLines.length - 1) {
-                    bubble.appendChild(document.createElement('br'));
+            if (isUser) {
+                bubble.textContent = text;
+            } else {
+                // Backend expects HTML, so we use innerHTML for bot responses.
+                // The prompt instructions strictly guide the LLM to use specific tags.
+                bubble.innerHTML = text;
+
+                if (sources && sources.length > 0) {
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'sources-dropdown';
+
+                    const toggle = document.createElement('div');
+                    toggle.className = 'sources-toggle';
+                    toggle.innerHTML = '<span>📚</span> <strong>참고 문헌 보기</strong> (' + sources.length + ')';
+
+                    const content = document.createElement('div');
+                    content.className = 'sources-content';
+
+                    sources.forEach((s, i) => {
+                        const card = document.createElement('div');
+                        card.className = 'source-card';
+                        card.innerHTML = `
+                            <div class="source-card-header">
+                                <span>[${i + 1}] ${s.rule_id}</span>
+                                <small>${(s.similarity * 100).toFixed(1)}%</small>
+                            </div>
+                            <div class="source-card-body">${s.content}</div>
+                        `;
+                        content.appendChild(card);
+                    });
+
+                    toggle.onclick = () => {
+                        const isOpen = content.style.display === 'block';
+                        content.style.display = isOpen ? 'none' : 'block';
+                    };
+
+                    dropdown.appendChild(toggle);
+                    dropdown.appendChild(content);
+                    bubble.appendChild(dropdown);
                 }
-            });
-
-            // 출처 정보 추가
-            if (sources && sources.length > 0) {
-                const sourcesDiv = document.createElement('div');
-                sourcesDiv.className = 'sources';
-
-                const sourcesTitle = document.createElement('div');
-                sourcesTitle.className = 'sources-title';
-                sourcesTitle.textContent = '📚 참고 규칙:';
-                sourcesDiv.appendChild(sourcesTitle);
-
-                sources.forEach((s, i) => {
-                    const sourceItem = document.createElement('div');
-                    sourceItem.className = 'source-item';
-
-                    // 제목과 유사도
-                    const titleDiv = document.createElement('div');
-                    titleDiv.style.fontWeight = 'bold';
-                    titleDiv.textContent = `${i + 1}. ${s.rule_id} (${(s.similarity * 100).toFixed(1)}%)`;
-                    sourceItem.appendChild(titleDiv);
-
-                    // 원문 텍스트 (source_text)
-                    const contentDiv = document.createElement('div');
-                    contentDiv.style.background = '#f0f0f0';
-                    contentDiv.style.padding = '8px';
-                    contentDiv.style.borderRadius = '5px';
-                    contentDiv.style.marginTop = '4px';
-                    contentDiv.style.fontSize = '11px';
-                    contentDiv.style.maxHeight = '80px';
-                    contentDiv.style.overflowY = 'auto';
-                    contentDiv.textContent = s.content;
-                    sourceItem.appendChild(contentDiv);
-
-                    sourcesDiv.appendChild(sourceItem);
-                });
-
-                bubble.appendChild(sourcesDiv);
             }
 
             messageDiv.appendChild(avatar);
@@ -377,79 +542,61 @@
             chatArea.scrollTop = chatArea.scrollHeight;
         }
 
-        function showLoading() {
-            const chatArea = document.getElementById('chatArea');
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'message bot';
-            loadingDiv.id = 'loadingMessage';
-            loadingDiv.innerHTML = `
-                <div class="avatar">🤖</div>
-                <div class="bubble">
-                    <div class="loading"></div>
-                    <div class="loading" style="margin: 0 5px;"></div>
-                    <div class="loading"></div>
-                </div>
-            `;
-            chatArea.appendChild(loadingDiv);
-            chatArea.scrollTop = chatArea.scrollHeight;
-        }
-
-        function hideLoading() {
-            const loading = document.getElementById('loadingMessage');
-            if (loading) loading.remove();
-        }
-
         async function sendQuestion() {
             const questionInput = document.getElementById('questionInput');
             const geminiApiKey = document.getElementById('geminiApiKey').value.trim();
+            const geminiModel = document.getElementById('geminiModel').value;
             const question = questionInput.value.trim();
 
-            if (!geminiApiKey) {
-                alert('Gemini API Key를 먼저 입력해주세요!');
-                return;
-            }
+            if (!geminiApiKey) { alert('Gemini API Key를 입력해주세요.'); return; }
+            if (!question) return;
 
-            if (!question) {
-                alert('질문을 입력해주세요!');
-                return;
-            }
-
-            // UI 업데이트
+            // UI Update
             addMessage(question, true);
             questionInput.value = '';
-            document.getElementById('sendBtn').disabled = true;
-            showLoading();
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            // Loading indicator
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'message bot';
+            loadingMsg.id = 'temp-loading';
+            loadingMsg.innerHTML = `
+                <div class="avatar">🤖</div>
+                <div class="bubble"><div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>
+            `;
+            document.getElementById('chatArea').appendChild(loadingMsg);
+            document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
 
             try {
                 const response = await fetch(EDGE_FUNCTION_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         question: question,
                         gemini_api_key: geminiApiKey,
+                        model: geminiModel,  // CRITICAL: Required by backend
                         match_count: 5,
-                        match_threshold: 0.3
+                        match_threshold: 0.25
                     })
                 });
 
-                hideLoading();
+                document.getElementById('temp-loading').remove();
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || '서버 오류가 발생했습니다.');
+                    throw new Error(errorData.error || '서버 오류');
                 }
 
                 const data = await response.json();
                 addMessage(data.answer, false, data.sources);
 
             } catch (error) {
-                hideLoading();
-                addMessage(`❌ 오류: ${error.message}`, false);
+                if (document.getElementById('temp-loading')) document.getElementById('temp-loading').remove();
+                addMessage(`❌ 오류가 발생했습니다: ${error.message}`, false);
                 console.error('Error:', error);
             } finally {
-                document.getElementById('sendBtn').disabled = false;
+                sendBtn.disabled = false;
             }
         }
     </script>
