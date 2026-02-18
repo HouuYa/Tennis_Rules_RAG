@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테니스 규칙 관리자 (Admin)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background: #f0f2f5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 24px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header a {
+            color: #ecf0f1;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 20px;
+        }
+
+        .section {
+            margin-bottom: 32px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .source-list {
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        .source-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .source-item:last-child {
+            border-bottom: none;
+        }
+
+        .source-info {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #e84118;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-primary:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        #statusBox {
+            margin-top: 20px;
+            padding: 15px;
+            background: #333;
+            color: #2ecc71;
+            font-family: monospace;
+            border-radius: 6px;
+            min-height: 100px;
+            overflow-y: auto;
+            max-height: 300px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎾 Admin Dashboard</h1>
+            <a href="/">메인으로 돌아가기 →</a>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>📦 데이터 소스 관리</h2>
+                <button onclick="fetchSources()" class="btn-primary" style="padding: 6px 12px; margin-bottom: 10px;">목록
+                    새로고침</button>
+                <ul id="sourceList" class="source-list">
+                    <!-- Loaded via JS -->
+                </ul>
+            </div>
+
+            <div class="section upload-section">
+                <h2>📤 새 규칙 데이터 업로드 (Beta)</h2>
+                <div class="form-group">
+                    <label>Admin Secret Key (Supabase Service Role Key)</label>
+                    <input type="password" id="adminSecretKey" placeholder="관리자 비밀키 입력">
+                </div>
+                <div class="form-group">
+                    <label>Gemini API Key (업로드 시 필요)</label>
+                    <input type="password" id="adminApiKey" placeholder="API Key">
+                </div>
+                <div class="form-group">
+                    <label>PDF 파일 (현재는 이미 추출된 텍스트 기반 업로드 지원)</label>
+                    <p style="font-size: 12px; color: #666; margin-bottom: 10px;">⚠️ 전체 ETL 프로세스를 브라우저에서 실행하려면 복잡한 로직이
+                        필요합니다. 현재는 미리 정의된 SQL 파일을 통해 업로드하거나 Supabase RPC를 호출하도록 권장됩니다.</p>
+                </div>
+                <button id="uploadBtn" onclick="startUpload()" class="btn-primary">데이터 업로드 시작</button>
+
+                <div id="statusBox">진행 상태가 여기에 표시됩니다...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            // 간단한 세션 체크
+            if (sessionStorage.getItem('admin_id') !== 'admin' || sessionStorage.getItem('admin_pw') !== 'tennis1234') {
+                alert("인증이 필요합니다.");
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const ADMIN_API_URL = 'https://ctzcgrwjsrvoxjycwtya.supabase.co/functions/v1/tennis-etl';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0emNncndqc3J2b3hqeWN3dHlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMDAzNjAsImV4cCI6MjA4MjY3NjM2MH0.Ni2obAqCCy1ARBy2BxG8sz1Pcbh4exIZS726VsLwOS8';
+
+            function getAdminKey() {
+                const key = document.getElementById('adminSecretKey').value;
+                if (!key) {
+                    alert("관리자 비밀키를 입력해주세요.");
+                    return null;
+                }
+                return key;
+            }
+
+            async function fetchSources() {
+                const adminKey = document.getElementById('adminSecretKey').value;
+                if (!adminKey) {
+                    logStatus("관리자 비밀키가 입력되지 않았습니다. 목록을 가져오려면 키를 입력하고 새로고침하세요.");
+                    return;
+                }
+
+                logStatus("데이터 소스 목록을 가져오는 중...");
+                try {
+                    const response = await fetch(ADMIN_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify({ action: 'list_sources', adminKey })
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok) throw new Error(result.error || "목록 가져오기 실패");
+
+                    const { sources } = result;
+                    const list = document.getElementById('sourceList');
+                    list.innerHTML = '';
+
+                    if (sources.length === 0) {
+                        list.innerHTML = '<li class="source-item">등록된 소스가 없습니다.</li>';
+                    }
+
+                    sources.forEach(source => {
+                        const li = document.createElement('li');
+                        li.className = 'source-item';
+
+                        const span = document.createElement('span');
+                        span.className = 'source-info';
+                        span.textContent = source;
+
+                        const btn = document.createElement('button');
+                        btn.className = 'delete-btn';
+                        btn.textContent = '삭제';
+                        btn.onclick = () => window.deleteSource(source);
+
+                        li.appendChild(span);
+                        li.appendChild(btn);
+                        list.appendChild(li);
+                    });
+                    logStatus("목록을 성공적으로 가져왔습니다.");
+                } catch (err) {
+                    logStatus("오류 발생: " + err.message);
+                }
+            }
+
+            window.fetchSources = fetchSources;
+
+            window.deleteSource = async function (fileName) {
+                const adminKey = getAdminKey();
+                if (!adminKey) return;
+
+                if (!confirm(`'${fileName}' 소스의 모든 데이터를 삭제하시겠습니까?`)) return;
+
+                logStatus(`'${fileName}' 삭제 시도 중...`);
+                try {
+                    const response = await fetch(ADMIN_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify({ action: 'delete_source', fileName, adminKey })
+                    });
+                    const result = await response.json();
+
+                    if (!response.ok) throw new Error(result.error || "삭제 실패");
+
+                    logStatus(result.message);
+                    fetchSources(); // 리프레시
+                } catch (err) {
+                    logStatus("삭제 실패: " + err.message);
+                }
+            };
+
+            function logStatus(msg) {
+                const box = document.getElementById('statusBox');
+                box.innerText += `\n[${new Date().toLocaleTimeString()}] ${msg}`;
+                box.scrollTop = box.scrollHeight;
+            }
+
+            window.startUpload = function () {
+                logStatus("업로드 프로세스 기능을 준비 중입니다...");
+                logStatus("1. PDF 텍스트 추출 (Gemini API 호출)");
+                logStatus("2. 청크 분할 및 임베딩 생성");
+                logStatus("3. Supabase Batch Insert");
+            };
+
+            // 초기 로드
+            window.onload = fetchSources;
+        })();
+    </script>
+</body>
+
+</html>
