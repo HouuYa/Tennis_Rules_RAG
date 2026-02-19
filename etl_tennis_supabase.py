@@ -186,7 +186,6 @@ class TennisSupabaseETL:
             gemini_key = os.getenv("GEMINI_API_KEY")
             if not gemini_key or 'your-google-gemini-api-key' in gemini_key.lower():
                 logger.error("❌ GEMINI_API_KEY가 비어있거나 플레이스홀더로 보입니다. 임베딩을 진행할 수 없습니다.")
-                self.gemini_issue = True
                 return
         batch_size = 10
         total_chunks = len(chunks)
