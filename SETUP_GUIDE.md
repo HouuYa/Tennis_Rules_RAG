@@ -25,7 +25,7 @@ pip install -r requirements.txt
 프로젝트 루트에 `.env` 파일을 생성하고 다음 내용을 입력합니다.
 ```env
 SUPABASE_URL="자신의_supabase_url"
-SUPABASE_SERVICE_KEY="자신의_service_role_key"
+SUPABASE_SERVICE_ROLE_KEY="자신의_service_role_key"
 GEMINI_API_KEY="자신의_gemini_api_key"
 ADMIN_PASSWORD="어드민_대시보드_비밀번호"   # tennis-etl Edge Function 인증에 사용
 ```
