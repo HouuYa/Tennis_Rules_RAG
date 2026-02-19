@@ -21,7 +21,7 @@ class TennisSupabaseETL:
     def __init__(self):
         # 1. 환경 변수 로드 및 클라이언트 설정
         self.supabase_url = os.getenv("SUPABASE_URL")
-        self.supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        self.supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
         self.gemini_key = os.getenv("GEMINI_API_KEY")
         # 테스트용: DRY_RUN=1 로 설정하면 Supabase에 쓰지 않습니다.
         self.dry_run = os.getenv("DRY_RUN", "0") == "1"
@@ -35,7 +35,7 @@ class TennisSupabaseETL:
         # embedding 호출을 건너뛰는 테스트 모드이면 외부 키/클라이언트 초기화를 생략
         if not self.skip_embedding:
             if not all([self.supabase_url, self.supabase_key, self.gemini_key]):
-                raise ValueError("❌ .env 파일에 필수 키(SUPABASE_URL, SUPABASE_SERVICE_KEY, GEMINI_API_KEY)가 누락되었습니다.")
+                raise ValueError("❌ .env 파일에 필수 키(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY)가 누락되었습니다.")
 
             # Supabase 클라이언트 및 Gemini 구성은 실제 embedding/insert가 필요할 때만 수행
             try:
@@ -186,7 +186,6 @@ class TennisSupabaseETL:
             gemini_key = os.getenv("GEMINI_API_KEY")
             if not gemini_key or 'your-google-gemini-api-key' in gemini_key.lower():
                 logger.error("❌ GEMINI_API_KEY가 비어있거나 플레이스홀더로 보입니다. 임베딩을 진행할 수 없습니다.")
-                self.gemini_issue = True
                 return
         batch_size = 10
         total_chunks = len(chunks)

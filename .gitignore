@@ -56,3 +56,12 @@ temp/
 
 # Supabase local dev files
 supabase/.temp/
+
+# Generated artifacts (regeneratable from ETL pipeline)
+sql_chunk_*.sql
+insert_rules*.sql
+full_rules_text*.txt
+test_result.*
+
+# Windows OS artifacts
+%programdata%/

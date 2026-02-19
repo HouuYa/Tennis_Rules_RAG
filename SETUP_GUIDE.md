@@ -25,8 +25,9 @@ pip install -r requirements.txt
 프로젝트 루트에 `.env` 파일을 생성하고 다음 내용을 입력합니다.
 ```env
 SUPABASE_URL="자신의_supabase_url"
-SUPABASE_SERVICE_KEY="자신의_service_role_key"
+SUPABASE_SERVICE_ROLE_KEY="자신의_service_role_key"
 GEMINI_API_KEY="자신의_gemini_api_key"
+ADMIN_PASSWORD="어드민_대시보드_비밀번호"   # tennis-etl Edge Function 인증에 사용
 ```
 
 ⚠️ **주의**: `.env` 파일은 절대 Git에 커밋하지 마세요!
@@ -79,7 +80,7 @@ GROUP BY source_file;
 supabase login
 supabase link --project-ref your-project-ref
 # Function에서 사용할 비밀 키 설정 (필수!)
-supabase secrets set SUPABASE_URL=your_supabase_url SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+supabase secrets set SUPABASE_URL=your_supabase_url SUPABASE_SERVICE_ROLE_KEY=your_service_role_key ADMIN_PASSWORD=your_admin_password
 supabase functions deploy tennis-rag-query
 supabase functions deploy tennis-etl
 ```
@@ -90,6 +91,13 @@ supabase functions deploy tennis-etl
 
 새로운 테니스 규칙 PDF를 시스템에 추가하려면 다음 과정을 거칩니다.
 
+**방법 1 (권장): 통합 파이프라인**
+```bash
+python etl_tennis_supabase.py
+```
+`etl_tennis_supabase.py`는 추출, 청킹, 임베딩, 업로드를 한 번에 실행합니다.
+
+**방법 2: 단계별 수동 파이프라인**
 1.  **텍스트 추출**: `python extract_pdf_gemini.py` (PDF -> txt)
 2.  **SQL 생성**: `python gen_sql_from_txt.py` (txt -> sql + embeddings)
 3.  **데이터 소거**: (필요시) Admin 페이지 또는 SQL에서 기존 데이터를 삭제합니다.
@@ -128,4 +136,4 @@ A: `.env` 파일의 키가 유효한지, 그리고 브라우저 UI에서 입력�
 
 ---
 
-*최종 업데이트: 2026-02-18*
+*최종 업데이트: 2026-02-19*

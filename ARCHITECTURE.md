@@ -13,14 +13,13 @@
 │   │   ├── tennis-rag-query/ # Core RAG Logic (Search + Gemini)
 │   │   └── tennis-etl/       # Admin ETL Operations (List/Delete)
 │   └── migrations/         # SQL Schema & Vector Search Functions
-├── scripts/
-│   ├── extract_pdf_gemini.py # PDF to Structured Text (Gemini)
-│   ├── gen_sql_from_txt.py  # Text to SQL + Embeddings
-│   └── upload_rules.py      # Database Uploader
-├── data/
-│   ├── full_rules_text.txt # Extracted Raw Text
-│   └── insert_rules.sql    # Generated SQL with Vectors
-└── docs/                   # Extended Documentation
+├── etl_tennis_supabase.py  # Unified ETL Pipeline (recommended)
+├── extract_pdf_gemini.py   # PDF to Structured Text (Gemini)
+├── gen_sql_from_txt.py     # Text to SQL + Embeddings
+├── upload_rules.py         # Database Uploader
+├── split_sql.py            # SQL File Splitter (batch upload helper)
+├── verify_data.py          # Data Validation Tool
+└── docs/                   # PDF Rule Source Files
 ```
 
 > **Note**: This repository serves as the specialized RAG (Retrieval-Augmented Generation) engine for the [Tennis Mate](https://github.com/HouuYa/tennis-mate) ecosystem.
@@ -31,7 +30,7 @@
 The system implements a modern RAG pipeline to provide authoritative answers based on ITF/KTA rules:
 
 1.  **Embeddings**:
-    - Model: `text-embedding-004` (768 dimensions) or latest Gemini embeddings.
+    - Model: `gemini-embedding-001` (768 dimensions) or latest Gemini embeddings.
     - Consistency: Both ingestion (ETL) and query (Edge Function) use the same model configuration.
 
 2.  **Vector Store**:
@@ -45,12 +44,16 @@ The system implements a modern RAG pipeline to provide authoritative answers bas
 4.  **Source Attribution**:
     - Every answer includes a Reference section ([1], [2]...) mapping to specific rule IDs and similarity scores.
 
-### B. ETL Pipeline (5 Steps)
+### B. ETL Pipeline
+
+**Recommended: Unified pipeline** — `etl_tennis_supabase.py` runs the full pipeline end-to-end (extract, chunk, embed, and upload) in a single command. Supports `DRY_RUN`, `SKIP_EMBEDDING`, and `SKIP_REMOTE` environment flags for testing.
+
+**Alternative: 5-step manual pipeline**
 
 1.  **Extract**: `extract_pdf_gemini.py` uses Gemini 1.5 Flash to parse complex PDF layouts into structured text, handling tables and multi-column formats better than traditional OCR.
-2.  **Buffer**: Raw text is stored in `full_rules_text.txt`.
+2.  **Buffer**: Raw text is stored temporarily (not committed to git).
 3.  **Transform**: `gen_sql_from_txt.py` performs semantic chunking (by rule number) and generates high-dimensional embeddings.
-4.  **SQL Gen**: `insert_rules.sql` is generated, containing bulk `INSERT` statements with vector arrays.
+4.  **SQL Gen**: SQL file is generated containing bulk `INSERT` statements with vector arrays (not committed to git).
 5.  **Load**: `upload_rules.py` executes the batches into Supabase.
 
 ### C. Backend & API (Supabase Edge Functions)

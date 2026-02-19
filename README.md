@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.4.0-brightgreen)
+![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)
 ![Status](https://img.shields.io/badge/Status-Sandbox%20%2F%20API-blue)
 ![Gemini](https://img.shields.io/badge/AI-Gemini%20RAG-8E75B2?logo=google)
 ![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7?logo=netlify)
